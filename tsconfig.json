@@ -1,0 +1,11 @@
+{
+	"extends": "./tsconfig.build.json",
+	"compilerOptions": {
+		"baseUrl": "./packages",
+		"paths": {
+			"rxxbot-types": ["rxxbot-types/src"],
+			"rxxbot-server": ["rxxbot-server/src"],
+			"rxxbot-client": ["rxxbot-client/src"]
+		}
+	}
+}
