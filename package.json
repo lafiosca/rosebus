@@ -1,0 +1,13 @@
+{
+	"name": "rosebus",
+	"version": "0.1.0",
+	"repository": "git@github.com:lafiosca/rosebus.git",
+	"author": "Joe Lafiosca <joe@lafiosca.com>",
+	"license": "MIT",
+	"workspaces": [
+		"packages/*"
+	],
+	"devDependencies": {
+		"lerna": "^3.22.1"
+	}
+}
