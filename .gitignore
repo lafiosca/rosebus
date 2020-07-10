@@ -5,7 +5,7 @@ packages/rxxbot-server/src/config/
 
 # yarn/build artifacts
 node_modules/
-build/
+dist/
 yarn-debug.log*
 yarn-error.log*
 
