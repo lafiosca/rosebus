@@ -8,8 +8,6 @@
 	"scripts": {
 		"build": "tsc -p tsconfig.build.json"
 	},
-	"dependencies": {
-	},
-	"devDependencies": {
-	}
+	"dependencies": {},
+	"devDependencies": {}
 }
