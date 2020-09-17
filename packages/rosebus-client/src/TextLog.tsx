@@ -11,16 +11,19 @@ const actionTypes = {
 	clearMessages: 'TextLog.clearMessages',
 };
 
-interface Action {
+interface DispatchAction<TPayload = any> {
 	type: string;
-	fromModuleId: string;
+	payload: TPayload;
 	targetModuleId?: string;
 	targetScreenId?: string;
-	payload: any;
+}
+
+interface Action<TPayload = any> extends DispatchAction<TPayload> {
+	fromModuleId: string;
 }
 
 interface Props {
-	dispatch: (action: Action) => void;
+	dispatch: (action: DispatchAction) => void;
 	storage: {
 		fetch: <T>(key: string) => Promise<T | undefined>;
 		store: <T>(key: string, value: T) => Promise<void>;
