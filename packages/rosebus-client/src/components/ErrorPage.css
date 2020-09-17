@@ -1,0 +1,14 @@
+.ErrorPage {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	align-items: center;
+}
+
+.ErrorPage > header > h1 {
+	font-size: calc(1.2rem + 2vmin);
+}
+
+.ErrorPage > p {
+	max-width: 32rem;
+}

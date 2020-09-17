@@ -6,7 +6,8 @@ module.exports = {
 	},
 	plugins: ['@typescript-eslint'],
 	extends: [
-		'airbnb-typescript/base',
+		'airbnb-typescript',
+		'react-app',
 	],
 	rules: {
 		'no-tabs': 0,
@@ -23,8 +24,8 @@ module.exports = {
 			ignoreRegExpLiterals: true,
 		}],
 		'@typescript-eslint/indent': [2, 'tab', { SwitchCase: 1 }],
+		'react/jsx-indent': [2, 'tab'],
+		'react/jsx-indent-props': [2, 'tab'],
+		'react/prop-types': 0,
 	},
-	ignorePatterns: [
-		'.eslintrc.js',
-	],
 };
