@@ -1,14 +1,23 @@
-import React from 'react';
+import React, {
+	useEffect,
+} from 'react';
+import { Router } from '@reach/router';
 
-import './App.css';
+import AppRoot from './routes/AppRoot';
 
-const App = () => (
-	<div className="App">
-		<header className="App-header">
-			<p>App</p>
-		</header>
-		<p>foo</p>
-	</div>
-);
+const App = () => {
+	useEffect(
+		() => {
+			console.log('Start client');
+		},
+		[],
+	);
+
+	return (
+		<Router>
+			<AppRoot default />
+		</Router>
+	);
+};
 
 export default App;

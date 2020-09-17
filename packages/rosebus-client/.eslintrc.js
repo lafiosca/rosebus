@@ -25,6 +25,7 @@ module.exports = {
 		}],
 		'@typescript-eslint/indent': [2, 'tab', { SwitchCase: 1 }],
 		'react/jsx-indent': [2, 'tab'],
+		'react/jsx-indent-props': [2, 'tab'],
 		'react/prop-types': 0,
 	},
 };
