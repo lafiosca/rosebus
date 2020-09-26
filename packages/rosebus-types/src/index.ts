@@ -233,4 +233,6 @@ export interface ClientConfig {
 	bridgePort?: number;
 	/** The port on which the client should listen for web connections */
 	port?: number;
+	/** The list of screens the client can render */
+	screens: ClientScreenConfig[];
 }
