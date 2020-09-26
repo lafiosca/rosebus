@@ -82,12 +82,12 @@ export interface BaseModule {
 	};
 }
 
-/** Predicate for validating base module defaultModuleId shape */
+/** Predicate for validating base module's defaultModuleId shape */
 export const isBaseModuleDefaultModuleId = (defaultModuleId: any): defaultModuleId is BaseModule['defaultModuleId'] => (
 	!!defaultModuleId && typeof defaultModuleId === 'string'
 );
 
-/** Predicate for validating base module capabilities shape */
+/** Predicate for validating base module's capabilities shape */
 export const isBaseModuleCapabilities = (capabilities: any): capabilities is BaseModule['capabilities'] => {
 	if (capabilities === undefined) {
 		return true;
@@ -174,20 +174,32 @@ export interface StorageModule extends BaseModule {
 		/** Indicates this module implements the storage methods */
 		readonly storage: true;
 	};
-	/** Fetch a string value by key, if it has been stored */
-	readonly fetch: (key: string) => Promise<string | undefined>;
-	/** Store a string value by key */
-	readonly store: (key: string, value: string) => Promise<void>;
-	/** Remove a stored value by key */
-	readonly remove: (key: string) => Promise<void>;
+	/** Storage implementation */
+	readonly storage: {
+		/** Fetch a string value by key, if it has been stored */
+		readonly fetch: (key: string) => Promise<string | undefined>;
+		/** Store a string value by key */
+		readonly store: (key: string, value: string) => Promise<void>;
+		/** Remove a stored value by key */
+		readonly remove: (key: string) => Promise<void>;
+	};
 }
 
-/** Predicate for validating server storage module shape */
+/** Predicate for validating storage module's storage implementation shape */
+export const isStorageModuleStorage = (storage: any): storage is StorageModule['storage'] => {
+	if (!storage || typeof storage !== 'object') {
+		return false;
+	}
+	const { fetch, store, remove } = storage;
+	return typeof fetch === 'function'
+		&& typeof store === 'function'
+		&& typeof remove === 'function';
+};
+
+/** Predicate for validating storage module shape */
 export const isStorageModule = (someModule: BaseModule): someModule is StorageModule => (
 	someModule.capabilities?.storage === true
-		&& typeof (someModule as any).fetch === 'function'
-		&& typeof (someModule as any).store === 'function'
-		&& typeof (someModule as any).remove === 'function'
+		&& isStorageModuleStorage((someModule as any).storage)
 );
 
 /** Import path for a module */
