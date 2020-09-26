@@ -1,14 +1,13 @@
 {
-	"name": "rosebus-types",
+	"name": "rosebus-server",
 	"version": "0.1.0",
 	"author": "Joe Lafiosca <joe@lafiosca.com>",
-	"main": "build/index.js",
-	"types": "build/index.d.ts",
 	"license": "MIT",
 	"scripts": {
 		"clean": "rimraf build",
 		"compile": "tsc -p tsconfig.build.json",
-		"build": "yarn clean && yarn compile"
+		"build": "yarn run clean && yarn run compile",
+		"serve": "yarn run build && node build/index.js"
 	},
 	"dependencies": {},
 	"devDependencies": {}
