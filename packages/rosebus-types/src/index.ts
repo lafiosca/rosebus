@@ -1,16 +1,19 @@
 import type { FunctionComponent } from 'react';
 import type { Observable } from 'rxjs';
 
-/** An action as it is dispatched by a module */
-export interface DispatchAction<TType extends string = string, TPayload = any> {
-	/** Type of the action, arbitrarily defined by module */
-	type: TType;
-	/** Payload of the action, arbitrarily defined by module */
-	payload: TPayload;
+export interface DispatchActionOptions {
 	/** A moduleId to which this action should be privately dispatched */
 	targetModuleId?: string;
 	/** A client screenId to which this action should be privately dispatched */
 	targetScreenId?: string;
+}
+
+/** An action as it is dispatched by a module */
+export interface DispatchAction<TType extends string = string, TPayload = any> extends DispatchActionOptions {
+	/** Type of the action, arbitrarily defined by module */
+	type: TType;
+	/** Payload of the action, arbitrarily defined by module */
+	payload: TPayload;
 }
 
 /** An action as it arrives via the bus */
@@ -24,6 +27,36 @@ export interface Action<TType extends string = string, TPayload = any> {
 	/** The client screenId from which this action was dispatched, if any */
 	readonly fromScreenId?: string;
 }
+
+/** Action creator function without metadata */
+export interface BareActionCreator<TType extends string = string, TPayload = any> {
+	(payload: TPayload, options?: DispatchActionOptions): DispatchAction<TType, TPayload>;
+}
+
+/** Action creator function */
+export interface ActionCreator<TType extends string = string, TPayload = any>
+	extends BareActionCreator<TType, TPayload> {
+	readonly type: TType;
+}
+
+/** Convenience function for building action creators */
+export const buildActionCreator = <TType extends string = string>(type: TType) => (
+	<TPayload extends any>(): ActionCreator<TType, TPayload> => {
+		const actionCreator: BareActionCreator<TType, TPayload> = (
+			(payload: TPayload, options: DispatchActionOptions = {}) => ({
+				...options,
+				type,
+				payload,
+			})
+		);
+		return Object.assign(actionCreator, { type });
+	}
+);
+
+/** Convenience function for filtering actions by action creator */
+export const isActionOf = <TType extends string, TPayload>(actionCreator: ActionCreator<TType, TPayload>) => (
+	(action: Action) => (action.type === actionCreator.type)
+);
 
 /** Storage role of a module */
 export enum StorageRole {
