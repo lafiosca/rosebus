@@ -1,4 +1,5 @@
-import { Observable } from 'rxjs';
+import type { FunctionComponent } from 'react';
+import type { Observable } from 'rxjs';
 
 /** An action as it is dispatched by a module */
 export interface DispatchAction<TType extends string = string, TPayload = any> {
@@ -14,9 +15,9 @@ export interface DispatchAction<TType extends string = string, TPayload = any> {
 
 /** An action as it arrives from the bus */
 export interface Action<TType extends string = string, TPayload = any> {
-	/** Type of the action, arbitrarily defined by module */
+	/** Type of the action, a string arbitrarily defined by module */
 	readonly type: TType;
-	/** Payload of the action, arbitrarily defined by module */
+	/** Payload of the action, arbitrarily defined by module; must be JSON-serializable if crossing client-server bridge */
 	readonly payload: TPayload;
 	/** The moduleId from which this action was dispatched */
 	readonly fromModuleId: string;
@@ -93,8 +94,8 @@ export interface ModuleParams {
 	readonly action$: Observable<Action>;
 }
 
-/** The shape of a server module export */
-export interface ServerModule {
+/** The common shape of a module export, server or client */
+export interface BaseModule {
 	/** Default moduleId for this module */
 	readonly defaultModuleId: string;
 	/** This module's extra capabilities, if any */
@@ -102,17 +103,15 @@ export interface ServerModule {
 		/** If true, indicates that this module implements the storage methods */
 		readonly storage?: boolean;
 	};
-	/** Module initialization method */
-	readonly initialize: (params: ModuleParams) => void;
 }
 
-/** Helper function for isServerModule */
-const isServerModuleDefaultModuleId = (defaultModuleId: any): defaultModuleId is ServerModule['defaultModuleId'] => (
+/** Predicate for validating base module defaultModuleId shape */
+export const isBaseModuleDefaultModuleId = (defaultModuleId: any): defaultModuleId is BaseModule['defaultModuleId'] => (
 	!!defaultModuleId && typeof defaultModuleId === 'string'
 );
 
-/** Helper function for isServerModule */
-const isServerModuleCapabilities = (capabilities: any): capabilities is ServerModule['capabilities'] => {
+/** Predicate for validating base module capabilities shape */
+export const isBaseModuleCapabilities = (capabilities: any): capabilities is BaseModule['capabilities'] => {
 	if (capabilities === undefined) {
 		return true;
 	}
@@ -126,30 +125,65 @@ const isServerModuleCapabilities = (capabilities: any): capabilities is ServerMo
 	return true;
 };
 
+/** Predicate for validating base module shape */
+export const isBaseModule = (someModule: any): someModule is BaseModule => {
+	if (!someModule || typeof someModule !== 'object') {
+		return false;
+	}
+	const { defaultModuleId, capabilities } = someModule;
+	if (!isBaseModuleDefaultModuleId(defaultModuleId)) {
+		return false;
+	}
+	if (!isBaseModuleCapabilities(capabilities)) {
+		return false;
+	}
+	return true;
+};
+
+/** The shape of a server module export */
+export interface ServerModule extends BaseModule {
+	/** Module initialization method */
+	readonly initialize: (params: ModuleParams) => void;
+}
+
 /** Predicate for validating server module shape */
-export const isServerModule = (serverModule: any): serverModule is ServerModule => {
-	if (!serverModule || typeof serverModule !== 'object') {
+export const isServerModule = (someModule: any): someModule is ServerModule => {
+	if (!isBaseModule(someModule)) {
 		return false;
 	}
-	const {
-		defaultModuleId,
-		capabilities,
-		initialize,
-	} = serverModule;
-	if (!isServerModuleDefaultModuleId(defaultModuleId)) {
-		return false;
-	}
-	if (!isServerModuleCapabilities(capabilities)) {
-		return false;
-	}
+	const { initialize } = someModule as any;
 	if (typeof initialize !== 'function') {
 		return false;
 	}
 	return true;
 };
 
-/** The shape of a specific subclass of server module which implements storage capability */
-export interface ServerStorageModule extends ServerModule {
+/** Props passed to a client module component */
+export interface ClientModuleComponentProps extends ModuleParams {
+	/** Unique identifier for the screen this instance of the module is mounted on */
+	readonly screenId: string;
+}
+
+/** The shape of a client module export */
+export interface ClientModule extends BaseModule {
+	/** React function component for the module */
+	readonly component: FunctionComponent<ClientModuleComponentProps>;
+}
+
+/** Predicate for validating client module shape */
+export const isClientModule = (someModule: any): someModule is ClientModule => {
+	if (!isBaseModule(someModule)) {
+		return false;
+	}
+	const { component } = someModule as any;
+	if (typeof component !== 'function') {
+		return false;
+	}
+	return true;
+};
+
+/** The shape of a module which implements storage capability */
+export interface StorageModule extends BaseModule {
 	/** This module's extra capabilities */
 	readonly capabilities: {
 		/** Indicates this module implements the storage methods */
@@ -164,9 +198,9 @@ export interface ServerStorageModule extends ServerModule {
 }
 
 /** Predicate for validating server storage module shape */
-export const isServerStorageModule = (serverModule: ServerModule): serverModule is ServerStorageModule => (
-	serverModule.capabilities?.storage === true
-		&& typeof (serverModule as any).fetch === 'function'
-		&& typeof (serverModule as any).store === 'function'
-		&& typeof (serverModule as any).remove === 'function'
+export const isStorageModule = (someModule: BaseModule): someModule is StorageModule => (
+	someModule.capabilities?.storage === true
+		&& typeof (someModule as any).fetch === 'function'
+		&& typeof (someModule as any).store === 'function'
+		&& typeof (someModule as any).remove === 'function'
 );

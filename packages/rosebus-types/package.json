@@ -11,9 +11,7 @@
 		"build": "yarn clean && yarn compile"
 	},
 	"devDependencies": {
-		"rxjs": "^6.6.3"
-	},
-	"peerDependencies": {
+		"@types/react": "^16.9.49",
 		"rxjs": "^6.6.3"
 	}
 }
