@@ -35,7 +35,7 @@ export enum StorageRole {
 	Secondary = 'secondary',
 }
 
-/** User-specified configuration for a module, arbitrary per module */
+/** Configuration for a module, arbitrary per module */
 export interface ModuleConfig {
 	/** Module config property, arbitrary per module */
 	[key: string]: any;
@@ -45,29 +45,6 @@ export interface ModuleConfig {
 export const isModuleConfig = (config: any): config is ModuleConfig => (
 	!!config && typeof config === 'object'
 );
-
-/** Path of an import for a module */
-export type ModulePath = string;
-
-/** Describes a module for the server to load */
-export interface ModuleSpec {
-	/** Path of the import for the module */
-	path: ModulePath;
-	/** Storage role of the module, if any */
-	storageRole?: StorageRole;
-	/** Unique module id, overriding default; useful for duplicate modules with distinct configs */
-	moduleId?: string;
-	/** Module config, arbitrary per module */
-	config?: ModuleConfig;
-}
-
-/** User-specified configuration for the server */
-export interface ServerConfig {
-	/** The list of modules for the server to load */
-	modules: (ModuleSpec | ModulePath)[];
-	/** The port on which the server should listen for client connections */
-	port?: number;
-}
 
 /** The collection of API methods provided to every module */
 export interface ModuleApi {
@@ -86,7 +63,7 @@ export interface ModuleApi {
 
 /** Parameters provided when initializing a module */
 export interface ModuleParams {
-	/** User-specified configuration for the module */
+	/** Configuration for the module */
 	readonly config: ModuleConfig;
 	/** API methods provided to the module */
 	readonly api: ModuleApi;
@@ -161,13 +138,21 @@ export const isServerModule = (someModule: any): someModule is ServerModule => {
 /** Props passed to a client module component */
 export interface ClientModuleComponentProps extends ModuleParams {
 	/** Unique identifier for the screen this instance of the module is mounted on */
-	readonly screenId: string;
+	screenId: string;
+}
+
+/** Props passed to a client module configurator */
+export interface ClientModuleConfiguratorProps {
+	/** Handler for saving config object */
+	saveConfig: (config: ModuleConfig) => Promise<void>;
 }
 
 /** The shape of a client module export */
 export interface ClientModule extends BaseModule {
 	/** React function component for the module */
 	readonly component: FunctionComponent<ClientModuleComponentProps>;
+	/** React function component for the module's configurator */
+	readonly configurator?: FunctionComponent<ClientModuleConfiguratorProps>;
 }
 
 /** Predicate for validating client module shape */
@@ -204,3 +189,48 @@ export const isStorageModule = (someModule: BaseModule): someModule is StorageMo
 		&& typeof (someModule as any).store === 'function'
 		&& typeof (someModule as any).remove === 'function'
 );
+
+/** Import path for a module */
+export type ModulePath = string;
+
+/** Describes a module to load */
+export interface BaseModuleSpec {
+	/** Path of the import for the module */
+	path: ModulePath;
+	/** Storage role of the module, if any */
+	storageRole?: StorageRole;
+	/** Unique module id, overriding default; useful for duplicate modules with distinct configs */
+	moduleId?: string;
+	/** Module config, arbitrary per module */
+	config?: ModuleConfig;
+}
+
+/** Describes a server module to load */
+export interface ServerModuleSpec extends BaseModuleSpec {}
+
+/** Describes a client module to load */
+export interface ClientModuleSpec extends BaseModuleSpec {}
+
+/** Configuration for the server */
+export interface ServerConfig {
+	/** The list of modules for the server to load */
+	modules: (ServerModuleSpec | ModulePath)[];
+	/** The port on which the server should listen for client connections */
+	bridgePort?: number;
+}
+
+/** Configuration for a client screen */
+export interface ClientScreenConfig {
+	/** Unique identifier of the screen, also used in route URL */
+	screenId: string;
+	/** The list of modules for the screen to render */
+	modules: (ClientModuleSpec | ModulePath)[];
+}
+
+/** Configuration for the client */
+export interface ClientConfig {
+	/** The port on which the client should connect to the server */
+	bridgePort?: number;
+	/** The port on which the client should listen for web connections */
+	port?: number;
+}
