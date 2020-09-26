@@ -13,7 +13,7 @@ export interface DispatchAction<TType extends string = string, TPayload = any> {
 	targetScreenId?: string;
 }
 
-/** An action as it arrives from the bus */
+/** An action as it arrives via the bus */
 export interface Action<TType extends string = string, TPayload = any> {
 	/** Type of the action, a string arbitrarily defined by module */
 	readonly type: TType;
@@ -247,4 +247,12 @@ export interface ClientConfig {
 	port?: number;
 	/** The list of screens the client can render */
 	screens: ClientScreenConfig[];
+}
+
+/** Root moduleId, for the bus itself */
+export const rootModuleId = 'rosebus';
+
+/** Root action types, for actions dispatched by the bus itself */
+export enum RootActionType {
+	InitComplete = 'initComplete',
 }
