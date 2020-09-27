@@ -17,7 +17,9 @@ export interface DispatchAction<TType extends string = string, TPayload = any> e
 }
 
 /** An action as it arrives via the bus */
-export interface Action<TType extends string = string, TPayload = any> {
+export interface Action<TName extends string = string, TType extends string = string, TPayload = any> {
+	/** Name of the module that dispatches this action */
+	readonly moduleName: TName;
 	/** Type of the action, a string arbitrarily defined by module */
 	readonly type: TType;
 	/** Payload of the action, arbitrarily defined by module; must be JSON-serializable if crossing client-server bridge */
@@ -34,14 +36,21 @@ export interface BareActionCreator<TType extends string = string, TPayload = any
 }
 
 /** Action creator function */
-export interface ActionCreator<TType extends string = string, TPayload = any>
-	extends BareActionCreator<TType, TPayload> {
+export interface ActionCreator<
+	TName extends string = string,
+	TType extends string = string,
+	TPayload = any
+> extends BareActionCreator<TType, TPayload> {
+	readonly moduleName: TName;
 	readonly type: TType;
 }
 
 /** Convenience function for building action creators */
-export const buildActionCreator = <TType extends string = string>(type: TType) => (
-	<TPayload extends any>(): ActionCreator<TType, TPayload> => {
+export const buildActionCreator = <
+	TName extends string = string,
+	TType extends string = string
+>(moduleName: TName, type: TType) => (
+	<TPayload extends any>(): ActionCreator<TName, TType, TPayload> => {
 		const actionCreator: BareActionCreator<TType, TPayload> = (
 			(payload: TPayload, options: DispatchActionOptions = {}) => ({
 				...options,
@@ -49,13 +58,18 @@ export const buildActionCreator = <TType extends string = string>(type: TType) =
 				payload,
 			})
 		);
-		return Object.assign(actionCreator, { type });
+		return Object.assign(actionCreator, { moduleName, type });
 	}
 );
 
 /** Convenience function for filtering actions by action creator */
-export const isActionOf = <TType extends string, TPayload>(actionCreator: ActionCreator<TType, TPayload>) => (
-	(action: Action) => (action.type === actionCreator.type)
+export const isActionOf = <TName extends string, TType extends string, TPayload>(
+	actionCreator: ActionCreator<TName, TType, TPayload>,
+) => (
+	(action: Action) => (
+		action.moduleName === actionCreator.moduleName
+			&& action.type === actionCreator.type
+	)
 );
 
 /** Storage role of a module */
@@ -106,18 +120,18 @@ export interface ModuleParams {
 
 /** The common shape of a module export, server or client */
 export interface BaseModule {
-	/** Default moduleId for this module */
-	readonly defaultModuleId: string;
-	/** This module's extra capabilities, if any */
+	/** Unique name of this module; also used as default moduleId */
+	readonly name: string;
+	/** This module's additional capabilities, if any */
 	readonly capabilities?: {
 		/** If true, indicates that this module implements the storage methods */
 		readonly storage?: boolean;
 	};
 }
 
-/** Predicate for validating base module's defaultModuleId shape */
-export const isBaseModuleDefaultModuleId = (defaultModuleId: any): defaultModuleId is BaseModule['defaultModuleId'] => (
-	!!defaultModuleId && typeof defaultModuleId === 'string'
+/** Predicate for validating base module's name shape */
+export const isBaseModuleName = (name: any): name is BaseModule['name'] => (
+	!!name && typeof name === 'string'
 );
 
 /** Predicate for validating base module's capabilities shape */
@@ -140,8 +154,8 @@ export const isBaseModule = (someModule: any): someModule is BaseModule => {
 	if (!someModule || typeof someModule !== 'object') {
 		return false;
 	}
-	const { defaultModuleId, capabilities } = someModule;
-	if (!isBaseModuleDefaultModuleId(defaultModuleId)) {
+	const { name, capabilities } = someModule;
+	if (!isBaseModuleName(name)) {
 		return false;
 	}
 	if (!isBaseModuleCapabilities(capabilities)) {
