@@ -3,7 +3,7 @@
 	"compilerOptions": {
 		"baseUrl": "./packages",
 		"paths": {
-			"rosebus-types": ["rosebus-types/src"]
+			"@rosydoublecross/rosebus-*": ["rosebus-*/src"]
 		}
 	}
 }

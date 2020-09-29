@@ -2,9 +2,13 @@ import type { FunctionComponent } from 'react';
 import type { Observable } from 'rxjs';
 
 export interface DispatchActionOptions {
+	/** If true, dispatch this action only to server modules */
+	targetServer?: boolean;
 	/** A moduleId to which this action should be privately dispatched */
 	targetModuleId?: string;
-	/** A client screenId to which this action should be privately dispatched */
+	/** A clientId to which this action should be privately dispatched */
+	targetClientId?: string;
+	/** A screenId to which this action should be privately dispatched */
 	targetScreenId?: string;
 }
 
@@ -26,7 +30,9 @@ export interface Action<TName extends string = string, TType extends string = st
 	readonly payload: TPayload;
 	/** The moduleId from which this action was dispatched */
 	readonly fromModuleId: string;
-	/** The client screenId from which this action was dispatched, if any */
+	/** The clientId from which this action was dispatched, if client-originated */
+	readonly fromClientId?: string;
+	/** The screenId from which this action was dispatched, if client-originated */
 	readonly fromScreenId?: string;
 }
 
@@ -109,9 +115,11 @@ export interface ModuleApi {
 }
 
 /** Parameters provided when initializing a module */
-export interface ModuleParams {
+export interface ModuleParams<TConfig extends ModuleConfig = ModuleConfig> {
+	/** Unique identifier of this module instance */
+	readonly moduleId: string;
 	/** Configuration for the module */
-	readonly config: ModuleConfig;
+	readonly config: TConfig;
 	/** API methods provided to the module */
 	readonly api: ModuleApi;
 	/** Observable stream of bus actions seen by this module */
@@ -121,53 +129,49 @@ export interface ModuleParams {
 /** The common shape of a module export, server or client */
 export interface BaseModule {
 	/** Unique name of this module; also used as default moduleId */
-	readonly name: string;
-	/** This module's additional capabilities, if any */
-	readonly capabilities?: {
-		/** If true, indicates that this module implements the storage methods */
-		readonly storage?: boolean;
-	};
+	readonly moduleName: string;
 }
 
 /** Predicate for validating base module's name shape */
-export const isBaseModuleName = (name: any): name is BaseModule['name'] => (
-	!!name && typeof name === 'string'
+export const isBaseModuleName = (moduleName: any): moduleName is BaseModule['moduleName'] => (
+	!!moduleName && typeof moduleName === 'string'
 );
-
-/** Predicate for validating base module's capabilities shape */
-export const isBaseModuleCapabilities = (capabilities: any): capabilities is BaseModule['capabilities'] => {
-	if (capabilities === undefined) {
-		return true;
-	}
-	if (!capabilities || typeof capabilities !== 'object') {
-		return false;
-	}
-	const { storage } = capabilities;
-	if (storage !== undefined && typeof storage !== 'boolean') {
-		return false;
-	}
-	return true;
-};
 
 /** Predicate for validating base module shape */
 export const isBaseModule = (someModule: any): someModule is BaseModule => {
 	if (!someModule || typeof someModule !== 'object') {
 		return false;
 	}
-	const { name, capabilities } = someModule;
-	if (!isBaseModuleName(name)) {
-		return false;
-	}
-	if (!isBaseModuleCapabilities(capabilities)) {
+	const { moduleName } = someModule;
+	if (!isBaseModuleName(moduleName)) {
 		return false;
 	}
 	return true;
 };
 
+/** Parameters provided when initializing a server module */
+export interface ServerModuleInitParams<TConfig extends ModuleConfig = ModuleConfig> extends ModuleParams<TConfig> {}
+
+/** Server module storage capability implementation */
+export interface ServerModuleCapabilityStorage {
+	/** Fetch a string value by key, if it has been stored */
+	readonly fetch: (key: string) => Promise<string | undefined>;
+	/** Store a string value by key */
+	readonly store: (key: string, value: string) => Promise<void>;
+	/** Remove a stored value by key */
+	readonly remove: (key: string) => Promise<void>;
+}
+
+/** Optional response from server module initialization, providing module capabilities */
+export interface ServerModuleCapabilities {
+	/** Storage implementation */
+	readonly storage?: ServerModuleCapabilityStorage;
+}
+
 /** The shape of a server module export */
-export interface ServerModule extends BaseModule {
+export interface ServerModule<TConfig extends ModuleConfig = ModuleConfig> extends BaseModule {
 	/** Module initialization method */
-	readonly initialize: (params: ModuleParams) => void;
+	readonly initialize: (params: ServerModuleInitParams<TConfig>) => ServerModuleCapabilities | void;
 }
 
 /** Predicate for validating server module shape */
@@ -182,24 +186,45 @@ export const isServerModule = (someModule: any): someModule is ServerModule => {
 	return true;
 };
 
+/** Response from storage module initialization, implementing storage capability */
+export interface StorageModuleCapabilities extends Required<Pick<ServerModuleCapabilities, 'storage'>> {}
+
+/** The shape of a module which implements storage capability */
+export interface StorageModule<TConfig extends ModuleConfig = ModuleConfig> extends ServerModule<TConfig> {
+	readonly initialize: (params: ServerModuleInitParams<TConfig>) => StorageModuleCapabilities;
+}
+
+/** Predicate for validating server module's storage capability implementation shape */
+export const isServerModuleCapabilityStorage = (storage: any): storage is ServerModuleCapabilityStorage => {
+	if (!storage || typeof storage !== 'object') {
+		return false;
+	}
+	const { fetch, store, remove } = storage;
+	return typeof fetch === 'function'
+		&& typeof store === 'function'
+		&& typeof remove === 'function';
+};
+
 /** Props passed to a client module component */
-export interface ClientModuleComponentProps extends ModuleParams {
+export interface ClientModuleComponentProps<TConfig extends ModuleConfig = ModuleConfig> extends ModuleParams<TConfig> {
+	/** Unique identifer of the client connection */
+	clientId: string;
 	/** Unique identifier for the screen this instance of the module is mounted on */
 	screenId: string;
 }
 
 /** Props passed to a client module configurator */
-export interface ClientModuleConfiguratorProps {
+export interface ClientModuleConfiguratorProps<TConfig extends ModuleConfig = ModuleConfig> {
 	/** Handler for saving config object */
-	saveConfig: (config: ModuleConfig) => Promise<void>;
+	saveConfig: (config: TConfig) => Promise<void>;
 }
 
 /** The shape of a client module export */
-export interface ClientModule extends BaseModule {
+export interface ClientModule<TConfig extends ModuleConfig = ModuleConfig> extends BaseModule {
 	/** React function component for the module */
-	readonly component: FunctionComponent<ClientModuleComponentProps>;
+	readonly component: FunctionComponent<ClientModuleComponentProps<TConfig>>;
 	/** React function component for the module's configurator */
-	readonly configurator?: FunctionComponent<ClientModuleConfiguratorProps>;
+	readonly configurator?: FunctionComponent<ClientModuleConfiguratorProps<TConfig>>;
 }
 
 /** Predicate for validating client module shape */
@@ -214,61 +239,27 @@ export const isClientModule = (someModule: any): someModule is ClientModule => {
 	return true;
 };
 
-/** The shape of a module which implements storage capability */
-export interface StorageModule extends BaseModule {
-	/** This module's extra capabilities */
-	readonly capabilities: {
-		/** Indicates this module implements the storage methods */
-		readonly storage: true;
-	};
-	/** Storage implementation */
-	readonly storage: {
-		/** Fetch a string value by key, if it has been stored */
-		readonly fetch: (key: string) => Promise<string | undefined>;
-		/** Store a string value by key */
-		readonly store: (key: string, value: string) => Promise<void>;
-		/** Remove a stored value by key */
-		readonly remove: (key: string) => Promise<void>;
-	};
-}
-
-/** Predicate for validating storage module's storage implementation shape */
-export const isStorageModuleStorage = (storage: any): storage is StorageModule['storage'] => {
-	if (!storage || typeof storage !== 'object') {
-		return false;
-	}
-	const { fetch, store, remove } = storage;
-	return typeof fetch === 'function'
-		&& typeof store === 'function'
-		&& typeof remove === 'function';
-};
-
-/** Predicate for validating storage module shape */
-export const isStorageModule = (someModule: BaseModule): someModule is StorageModule => (
-	someModule.capabilities?.storage === true
-		&& isStorageModuleStorage((someModule as any).storage)
-);
-
 /** Import path for a module */
 export type ModulePath = string;
 
 /** Describes a module to load */
-export interface BaseModuleSpec {
+export interface BaseModuleSpec<TConfig extends ModuleConfig = ModuleConfig> {
 	/** Path of the import for the module */
 	path: ModulePath;
-	/** Storage role of the module, if any */
-	storageRole?: StorageRole;
 	/** Unique module id, overriding default; useful for duplicate modules with distinct configs */
 	moduleId?: string;
 	/** Module config, arbitrary per module */
-	config?: ModuleConfig;
+	config?: TConfig;
 }
 
 /** Describes a server module to load */
-export interface ServerModuleSpec extends BaseModuleSpec {}
+export interface ServerModuleSpec<TConfig extends ModuleConfig = ModuleConfig> extends BaseModuleSpec<TConfig> {
+	/** Storage role of the module, if any */
+	storageRole?: StorageRole;
+}
 
 /** Describes a client module to load */
-export interface ClientModuleSpec extends BaseModuleSpec {}
+export interface ClientModuleSpec<TConfig extends ModuleConfig = ModuleConfig> extends BaseModuleSpec<TConfig> {}
 
 /** Configuration for the server */
 export interface ServerConfig {
