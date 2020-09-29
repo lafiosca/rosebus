@@ -4,7 +4,17 @@
 	"author": "Joe Lafiosca <joe@lafiosca.com>",
 	"main": "build/index.js",
 	"types": "build/index.d.ts",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/lafiosca/rosebus.git"
+	},
+	"bugs": {
+		"url": "https://github.com/lafiosca/rosebus/issues"
+	},
 	"license": "MIT",
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
 		"clean": "rimraf build",
 		"compile": "tsc -p tsconfig.build.json",

@@ -5,7 +5,7 @@ import {
 
 const moduleName = 'MemoryStorage';
 
-interface MemoryStorageConfig extends ModuleConfig {
+export interface MemoryStorageConfig extends ModuleConfig {
 	verbose?: boolean;
 }
 

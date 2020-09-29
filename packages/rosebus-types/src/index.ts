@@ -51,6 +51,26 @@ export interface ActionCreator<
 	readonly type: TType;
 }
 
+/** Union type of dispatch actions returned by any action creator in a map, or from a single action creator */
+export type DispatchActionType<TActionCreators extends any> =
+	TActionCreators extends BareActionCreator
+		? ReturnType<TActionCreators>
+		: TActionCreators extends Record<any, any>
+			? {
+				[K in keyof TActionCreators]: DispatchActionType<TActionCreators[K]>;
+			}[keyof TActionCreators]
+			: never;
+
+/** Union type of actions originating from any action creator in a map, or from a single action creator */
+export type ActionType<TActionCreators extends any> =
+	TActionCreators extends ActionCreator<infer TName, infer TType, infer TPayload>
+		? Action<TName, TType, TPayload>
+		: TActionCreators extends Record<any, any>
+			? {
+				[K in keyof TActionCreators]: ActionType<TActionCreators[K]>;
+			}[keyof TActionCreators]
+			: never;
+
 /** Convenience function for building action creators */
 export const buildActionCreator = <
 	TName extends string = string,
@@ -72,7 +92,7 @@ export const buildActionCreator = <
 export const isActionOf = <TName extends string, TType extends string, TPayload>(
 	actionCreator: ActionCreator<TName, TType, TPayload>,
 ) => (
-	(action: Action) => (
+	(action: Action): action is Action<TName, TType, TPayload> => (
 		action.moduleName === actionCreator.moduleName
 			&& action.type === actionCreator.type
 	)
@@ -100,9 +120,9 @@ export const isModuleConfig = (config: any): config is ModuleConfig => (
 );
 
 /** The collection of API methods provided to every module */
-export interface ModuleApi {
+export interface ModuleApi<TDispatchAction extends DispatchAction = DispatchAction> {
 	/** Dispatch an action to the bus */
-	readonly dispatch: (action: DispatchAction) => void;
+	readonly dispatch: (action: TDispatchAction) => void;
 	/** Storage API methods */
 	readonly storage: {
 		/** Fetch a value by key, if it has been stored */
@@ -115,13 +135,16 @@ export interface ModuleApi {
 }
 
 /** Parameters provided when initializing a module */
-export interface ModuleParams<TConfig extends ModuleConfig = ModuleConfig> {
+export interface ModuleParams<
+	TConfig extends ModuleConfig = ModuleConfig,
+	TDispatchAction extends DispatchAction = DispatchAction,
+> {
 	/** Unique identifier of this module instance */
 	readonly moduleId: string;
 	/** Configuration for the module */
 	readonly config: TConfig;
 	/** API methods provided to the module */
-	readonly api: ModuleApi;
+	readonly api: ModuleApi<TDispatchAction>;
 	/** Observable stream of bus actions seen by this module */
 	readonly action$: Observable<Action>;
 }
@@ -150,10 +173,13 @@ export const isBaseModule = (someModule: any): someModule is BaseModule => {
 };
 
 /** Parameters provided when initializing a server module */
-export interface ServerModuleInitParams<TConfig extends ModuleConfig = ModuleConfig> extends ModuleParams<TConfig> {}
+export interface ServerModuleInitParams<
+	TConfig extends ModuleConfig = ModuleConfig,
+	TDispatchAction extends DispatchAction = DispatchAction,
+> extends ModuleParams<TConfig, TDispatchAction> {}
 
 /** Server module storage capability implementation */
-export interface ServerModuleCapabilityStorage {
+export interface ServerModuleStorageImplementation {
 	/** Fetch a string value by key, if it has been stored */
 	readonly fetch: (key: string) => Promise<string | undefined>;
 	/** Store a string value by key */
@@ -162,16 +188,23 @@ export interface ServerModuleCapabilityStorage {
 	readonly remove: (key: string) => Promise<void>;
 }
 
-/** Optional response from server module initialization, providing module capabilities */
-export interface ServerModuleCapabilities {
+/** Optional response from server module initialization */
+export interface ServerModuleInitResponse<TDispatchAction extends DispatchAction = DispatchAction> {
+	/** Reaction (action feedback) stream */
+	readonly reaction$?: Observable<TDispatchAction>;
 	/** Storage implementation */
-	readonly storage?: ServerModuleCapabilityStorage;
+	readonly storage?: ServerModuleStorageImplementation;
 }
 
 /** The shape of a server module export */
-export interface ServerModule<TConfig extends ModuleConfig = ModuleConfig> extends BaseModule {
+export interface ServerModule<
+	TConfig extends ModuleConfig = ModuleConfig,
+	TDispatchAction extends DispatchAction = DispatchAction,
+> extends BaseModule {
 	/** Module initialization method */
-	readonly initialize: (params: ServerModuleInitParams<TConfig>) => ServerModuleCapabilities | void;
+	readonly initialize: (params: ServerModuleInitParams<TConfig, TDispatchAction>) => (
+		ServerModuleInitResponse<TDispatchAction> | void
+	);
 }
 
 /** Predicate for validating server module shape */
@@ -187,7 +220,7 @@ export const isServerModule = (someModule: any): someModule is ServerModule => {
 };
 
 /** Response from storage module initialization, implementing storage capability */
-export interface StorageModuleCapabilities extends Required<Pick<ServerModuleCapabilities, 'storage'>> {}
+export interface StorageModuleCapabilities extends Required<Pick<ServerModuleInitResponse, 'storage'>> {}
 
 /** The shape of a module which implements storage capability */
 export interface StorageModule<TConfig extends ModuleConfig = ModuleConfig> extends ServerModule<TConfig> {
@@ -195,7 +228,7 @@ export interface StorageModule<TConfig extends ModuleConfig = ModuleConfig> exte
 }
 
 /** Predicate for validating server module's storage capability implementation shape */
-export const isServerModuleCapabilityStorage = (storage: any): storage is ServerModuleCapabilityStorage => {
+export const isServerModuleCapabilityStorage = (storage: any): storage is ServerModuleStorageImplementation => {
 	if (!storage || typeof storage !== 'object') {
 		return false;
 	}
@@ -206,7 +239,10 @@ export const isServerModuleCapabilityStorage = (storage: any): storage is Server
 };
 
 /** Props passed to a client module component */
-export interface ClientModuleComponentProps<TConfig extends ModuleConfig = ModuleConfig> extends ModuleParams<TConfig> {
+export interface ClientModuleComponentProps<
+	TConfig extends ModuleConfig = ModuleConfig,
+	TDispatchAction extends DispatchAction = DispatchAction,
+> extends ModuleParams<TConfig, TDispatchAction> {
 	/** Unique identifer of the client connection */
 	clientId: string;
 	/** Unique identifier for the screen this instance of the module is mounted on */
@@ -220,9 +256,12 @@ export interface ClientModuleConfiguratorProps<TConfig extends ModuleConfig = Mo
 }
 
 /** The shape of a client module export */
-export interface ClientModule<TConfig extends ModuleConfig = ModuleConfig> extends BaseModule {
+export interface ClientModule<
+	TConfig extends ModuleConfig = ModuleConfig,
+	TDispatchAction extends DispatchAction = DispatchAction,
+> extends BaseModule {
 	/** React function component for the module */
-	readonly component: FunctionComponent<ClientModuleComponentProps<TConfig>>;
+	readonly component: FunctionComponent<ClientModuleComponentProps<TConfig, TDispatchAction>>;
 	/** React function component for the module's configurator */
 	readonly configurator?: FunctionComponent<ClientModuleConfiguratorProps<TConfig>>;
 }
@@ -287,10 +326,30 @@ export interface ClientConfig {
 	screens: ClientScreenConfig[];
 }
 
-/** Root moduleId, for the bus itself */
-export const rootModuleId = 'rosebus';
+/** Root module name/id, for the bus itself */
+export const rootModuleName = 'Rosebus';
+export const rootModuleId = rootModuleName;
 
-/** Root action types, for actions dispatched by the bus itself */
-export enum RootActionType {
-	InitComplete = 'initComplete',
+/** Payload for root initComplete action */
+export interface InitCompletePayload {
+	/** Number of server modules loaded */
+	moduleCount: number;
 }
+
+/** Payload for root shutdown action */
+export interface ShutdownPayload {}
+
+/** Root action creators, for actions dispatched by the bus itself */
+export const rootActions = {
+	initComplete: buildActionCreator(rootModuleName, 'initComplete')<InitCompletePayload>(),
+	shutdown: buildActionCreator(rootModuleName, 'shutdown')<ShutdownPayload>(),
+};
+
+/** Union type of all actions originating from the bus itself */
+export type RootActionType = ActionType<typeof rootActions>;
+
+/** Convenience function for filtering root initComplete action */
+export const isInitComplete = isActionOf(rootActions.initComplete);
+
+/** Convenience function for filtering root shutdown action */
+export const isShutdown = isActionOf(rootActions.shutdown);

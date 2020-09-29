@@ -1,5 +1,5 @@
 {
-	"name": "@rosydoublecross/rosebus-types",
+	"name": "@rosydoublecross/rosebus-server-heartbeat",
 	"version": "0.1.0",
 	"author": "Joe Lafiosca <joe@lafiosca.com>",
 	"main": "build/index.js",
@@ -20,8 +20,8 @@
 		"compile": "tsc -p tsconfig.build.json",
 		"build": "yarn clean && yarn compile"
 	},
-	"devDependencies": {
-		"@types/react": "^16.9.49",
+	"dependencies": {
+		"@rosydoublecross/rosebus-types": "^0.1.0",
 		"rxjs": "^6.6.3"
 	}
 }
