@@ -1,0 +1,34 @@
+{
+	"name": "@rosydoublecross/rosebus-client-textlog",
+	"version": "0.1.0",
+	"author": "Joe Lafiosca <joe@lafiosca.com>",
+	"main": "build/index.js",
+	"types": "build/index.d.ts",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/lafiosca/rosebus.git"
+	},
+	"bugs": {
+		"url": "https://github.com/lafiosca/rosebus/issues"
+	},
+	"license": "MIT",
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"clean": "rimraf build",
+		"compile": "tsc -p tsconfig.build.json",
+		"build": "yarn clean && yarn compile"
+	},
+	"dependencies": {
+		"@rosydoublecross/rosebus-types": "^0.1.0",
+		"rxjs": "^6.6.3"
+	},
+	"devDependencies": {
+		"react": "^16.13.1",
+		"@types/react": "^16.9.49"
+	},
+	"peerDependencies": {
+		"react": "*"
+	}
+}
