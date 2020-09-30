@@ -260,10 +260,10 @@ export interface ClientModule<
 	TConfig extends ModuleConfig = ModuleConfig,
 	TDispatchAction extends DispatchAction = DispatchAction,
 > extends BaseModule {
-	/** React function component for the module */
-	readonly component: FunctionComponent<ClientModuleComponentProps<TConfig, TDispatchAction>>;
+	/** React function component for the module's screen view */
+	readonly ScreenView: FunctionComponent<ClientModuleComponentProps<TConfig, TDispatchAction>>;
 	/** React function component for the module's configurator */
-	readonly configurator?: FunctionComponent<ClientModuleConfiguratorProps<TConfig>>;
+	readonly Configurator?: FunctionComponent<ClientModuleConfiguratorProps<TConfig>>;
 }
 
 /** Predicate for validating client module shape */

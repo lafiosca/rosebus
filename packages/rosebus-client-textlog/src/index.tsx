@@ -17,10 +17,6 @@ import { filter, tap } from 'rxjs/operators';
 const moduleName = 'TextLog';
 const defaultMaxMessageCount = 20;
 
-enum TextLogStorageKey {
-	LogMessages = 'logMessages',
-}
-
 export interface LogMesagePayload {
 	message: string;
 }
@@ -38,24 +34,36 @@ export type HeartbeatDispatchActionType = DispatchActionType<typeof actions>;
 /** Union type of all actions originating from the TextLog module */
 export type HearbeatActionType = ActionType<typeof actions>;
 
+/** TextLog config */
 export interface TextLogConfig extends ModuleConfig {
-	maxMessageCount?: number;
+	/** Maximum number of messages to keep in log before rolling off old ones; defaults to 20 */
+	logLength?: number;
+	/** Identifier of this log, for storing messages; defaults to moduleId */
+	logId?: string;
+	/** Optional title for the log */
+	logTitle?: string;
 }
 
-const TextLog: FunctionComponent<ClientModuleComponentProps<TextLogConfig, never>> = ({
+const ScreenView: FunctionComponent<ClientModuleComponentProps<TextLogConfig, never>> = ({
 	action$,
+	moduleId,
 	api: { storage },
 	config: {
-		maxMessageCount = defaultMaxMessageCount,
+		logId,
+		logLength,
+		logTitle,
 	},
 }) => {
 	const [logMessages, setLogMessages] = useState<string[]>([]);
+
+	const maxMessageCount = logLength ?? defaultMaxMessageCount;
+	const storageKey = `${logId ?? moduleId}:logMessages`;
 
 	// Fetch data initially
 	useEffect(
 		() => {
 			(async () => {
-				const storedLogMessages = await storage.fetch<string[]>(TextLogStorageKey.LogMessages);
+				const storedLogMessages = await storage.fetch<string[]>(storageKey);
 				if (storedLogMessages) {
 					setLogMessages((oldLogMessages) => {
 						if (oldLogMessages.length > 0) {
@@ -63,7 +71,7 @@ const TextLog: FunctionComponent<ClientModuleComponentProps<TextLogConfig, never
 								...storedLogMessages,
 								...oldLogMessages,
 							].slice(-maxMessageCount);
-							storage.store(TextLogStorageKey.LogMessages, newLogMessages);
+							storage.store(storageKey, newLogMessages);
 							return newLogMessages;
 						}
 						return storedLogMessages;
@@ -71,7 +79,7 @@ const TextLog: FunctionComponent<ClientModuleComponentProps<TextLogConfig, never
 				}
 			})();
 		},
-		[storage, maxMessageCount],
+		[storage, maxMessageCount, storageKey],
 	);
 
 	useEffect(
@@ -81,7 +89,7 @@ const TextLog: FunctionComponent<ClientModuleComponentProps<TextLogConfig, never
 				tap(({ payload: { message } }) => {
 					setLogMessages((oldLogMessages) => {
 						const newLogMessages = [...oldLogMessages.slice(1 - maxMessageCount), message];
-						storage.store(TextLogStorageKey.LogMessages, newLogMessages);
+						storage.store(storageKey, newLogMessages);
 						return newLogMessages;
 					});
 				}),
@@ -90,7 +98,7 @@ const TextLog: FunctionComponent<ClientModuleComponentProps<TextLogConfig, never
 				filter(isActionOf(actions.clearMessages)),
 				tap(() => {
 					setLogMessages([]);
-					storage.store(TextLogStorageKey.LogMessages, []);
+					storage.store(storageKey, []);
 				}),
 			).subscribe();
 			return () => {
@@ -102,11 +110,15 @@ const TextLog: FunctionComponent<ClientModuleComponentProps<TextLogConfig, never
 			action$,
 			storage,
 			maxMessageCount,
+			storageKey,
 		],
 	);
 
 	return (
-		<div className="TextLog">
+		<div className={moduleName}>
+			{!!logTitle && (
+				<h1>{logTitle}</h1>
+			)}
 			<ul>
 				{logMessages.map((message) => (
 					<li>{message}</li>
@@ -116,9 +128,9 @@ const TextLog: FunctionComponent<ClientModuleComponentProps<TextLogConfig, never
 	);
 };
 
-const TextLogModule: ClientModule<TextLogConfig, never> = {
+const TextLog: ClientModule<TextLogConfig, never> = {
 	moduleName,
-	component: TextLog,
+	ScreenView,
 };
 
-export default TextLogModule;
+export default TextLog;

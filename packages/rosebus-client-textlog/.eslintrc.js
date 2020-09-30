@@ -28,4 +28,7 @@ module.exports = {
 		'react/jsx-indent-props': [2, 'tab'],
 		'react/prop-types': 0,
 	},
+	ignorePatterns: [
+		'.eslintrc.js',
+	],
 };
