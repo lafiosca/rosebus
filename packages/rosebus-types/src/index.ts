@@ -108,6 +108,11 @@ export enum StorageRole {
 	Secondary = 'secondary',
 }
 
+/** Predicate for validating storage role */
+export const isStorageRole = (role: any): role is StorageRole => (
+	typeof role === 'string' && Object.values(StorageRole).includes(role as any)
+);
+
 /** Configuration for a module, arbitrary per module */
 export interface ModuleConfig {
 	/** Module config property, arbitrary per module */
@@ -291,11 +296,41 @@ export interface BaseModuleSpec<TConfig extends ModuleConfig = ModuleConfig> {
 	config?: TConfig;
 }
 
+/** Predicate for validating base module spec shape */
+export const isBaseModuleSpec = (spec: any): spec is BaseModuleSpec => {
+	if (!spec || typeof spec !== 'object') {
+		return false;
+	}
+	const { path, moduleId, config } = spec;
+	if (typeof path !== 'string') {
+		return false;
+	}
+	if (moduleId !== undefined && typeof moduleId !== 'string') {
+		return false;
+	}
+	if (config !== undefined && !isModuleConfig(config)) {
+		return false;
+	}
+	return true;
+};
+
 /** Describes a server module to load */
 export interface ServerModuleSpec<TConfig extends ModuleConfig = ModuleConfig> extends BaseModuleSpec<TConfig> {
 	/** Storage role of the module, if any */
 	storageRole?: StorageRole;
 }
+
+/** Predicate for validating server module spec shape */
+export const isServerModuleSpec = (spec: any): spec is ServerModuleSpec => {
+	if (!isBaseModuleSpec(spec)) {
+		return false;
+	}
+	const { storageRole } = spec as any;
+	if (storageRole !== undefined && !isStorageRole(storageRole)) {
+		return false;
+	}
+	return true;
+};
 
 /** Describes a client module to load */
 export interface ClientModuleSpec<TConfig extends ModuleConfig = ModuleConfig> extends BaseModuleSpec<TConfig> {}
@@ -307,6 +342,32 @@ export interface ServerConfig {
 	/** The port on which the server should listen for client connections */
 	bridgePort?: number;
 }
+
+/** Predicate for validating server config module item shape */
+export const isServerConfigModule = (item: any): item is ServerModuleSpec | ModulePath => {
+	if (typeof item === 'string') {
+		return true;
+	}
+	return isServerModuleSpec(item);
+};
+
+/** Predicate for validating server config shape */
+export const isServerConfig = (config: any): config is ServerConfig => {
+	if (!config || typeof config !== 'object') {
+		return false;
+	}
+	const { modules, bridgePort } = config;
+	if (!Array.isArray(modules)) {
+		return false;
+	}
+	if (!modules.every(isServerConfigModule)) {
+		return false;
+	}
+	if (bridgePort !== undefined && typeof bridgePort !== 'number') {
+		return false;
+	}
+	return true;
+};
 
 /** Configuration for a client screen */
 export interface ClientScreenConfig {

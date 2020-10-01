@@ -1,9 +1,0 @@
-{
-	"modules": [
-		{
-			"path": "./mods/foo"
-		},
-		"./mods/bar",
-		"baz"
-	]
-}

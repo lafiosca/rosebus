@@ -1,18 +1,40 @@
-/* eslint-disable no-await-in-loop */
-/* eslint-disable no-restricted-syntax */
+import {
+	ServerModule,
+	isServerModule,
+	isServerConfig,
+} from '@rosydoublecross/rosebus-types';
 
-const loadModules = async () => {
-	const config = await import('./config.json');
-	for (const entry of config.modules) {
-		const modulePath = (typeof entry === 'string') ? entry : entry.path;
-		try {
-			const module = await import(modulePath);
-			const { value } = module;
-			console.log(`loaded module value ${value}`);
-		} catch (error) {
-			console.error(`Failed to load module path '${modulePath}'`);
-		}
+import serverConfig from './config';
+
+const moduleCache: Record<string, ServerModule> = {};
+
+const importModule = async (modulePath: string) => {
+	const cachedModule = moduleCache[modulePath];
+	if (cachedModule) {
+		return cachedModule;
 	}
+	const moduleImport = await import(modulePath);
+	if (!isServerModule(moduleImport)) {
+		throw new Error(`Malformed server module at import path '${modulePath}'`);
+	}
+	moduleCache[modulePath] = moduleImport;
+	return moduleImport;
 };
 
-loadModules();
+const loadServerConfig = async (config: unknown) => {
+	if (!isServerConfig(config)) {
+		throw new Error('Malformed server config');
+	}
+	const modules = await Promise.all(
+		config.modules.map((item) => (
+			importModule(typeof item === 'string' ? item : item.path)
+		)),
+	);
+	modules.forEach(({ moduleName }) => {
+		console.log(moduleName);
+	});
+};
+
+(async () => {
+	await loadServerConfig(serverConfig);
+})();
