@@ -18,7 +18,8 @@
 	"scripts": {
 		"clean": "rimraf build",
 		"compile": "tsc -p tsconfig.build.json",
-		"build": "yarn clean && yarn compile"
+		"build": "yarn run clean && yarn run compile",
+		"build-server": "yarn run build"
 	},
 	"dependencies": {
 		"@rosebus/common": "^0.1.0"

@@ -7,6 +7,7 @@
 		"clean": "rimraf build",
 		"compile": "tsc -p tsconfig.build.json",
 		"build": "yarn run clean && yarn run compile",
+		"build-server": "yarn run build",
 		"serve": "yarn run build && node build/index.js"
 	},
 	"dependencies": {
