@@ -17,7 +17,7 @@ import {
 } from 'rxjs/operators';
 
 const moduleName = 'Heartbeat';
-const defaultDurationMs = 30000;
+const defaultDurationMs = 1000;
 
 export interface HeartbeatPayload {
 	beatCount: number;
@@ -42,7 +42,7 @@ export interface HeartbeatConfig extends ModuleConfig {
 
 const Heartbeat: ServerModule<HeartbeatConfig, HeartbeatDispatchActionType> = {
 	moduleName,
-	initialize: ({
+	initialize: async ({
 		action$,
 		config: { durationMs = defaultDurationMs },
 	}) => ({

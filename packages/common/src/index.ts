@@ -128,19 +128,27 @@ export const isModuleConfig = (config: any): config is ModuleConfig => (
 	!!config && typeof config === 'object'
 );
 
-/** The collection of API methods provided to every module */
+/** The dispatch API method provided to a module */
+export interface ModuleApiDispatch<TDispatchAction extends DispatchAction = DispatchAction> {
+	(action: TDispatchAction): void;
+}
+
+/** The collection of storage API methods provided to a module */
+export interface ModuleApiStorage {
+	/** Fetch a value by key, if it has been stored */
+	readonly fetch: <T = any>(key: string) => Promise<T | undefined>;
+	/** Store a JSON-serializable value by key */
+	readonly store: <T = any>(key: string, value: T) => Promise<void>;
+	/** Remove a stored value by key */
+	readonly remove: (key: string) => Promise<void>;
+}
+
+/** The collection of API methods provided to a module */
 export interface ModuleApi<TDispatchAction extends DispatchAction = DispatchAction> {
 	/** Dispatch an action to the bus */
-	readonly dispatch: (action: TDispatchAction) => void;
+	readonly dispatch: ModuleApiDispatch<TDispatchAction>;
 	/** Storage API methods */
-	readonly storage: {
-		/** Fetch a value by key, if it has been stored */
-		readonly fetch: <T = any>(key: string) => Promise<T | undefined>;
-		/** Store a JSON-serializable value by key */
-		readonly store: <T = any>(key: string, value: T) => Promise<void>;
-		/** Remove a stored value by key */
-		readonly remove: (key: string) => Promise<void>;
-	}
+	readonly storage: ModuleApiStorage;
 }
 
 /** Parameters provided when initializing a module */
@@ -189,12 +197,12 @@ export interface ServerModuleInitParams<
 
 /** Server module storage capability implementation */
 export interface ServerModuleStorageImplementation {
-	/** Fetch a string value by key, if it has been stored */
-	readonly fetch: (key: string) => Promise<string | undefined>;
-	/** Store a string value by key */
-	readonly store: (key: string, value: string) => Promise<void>;
-	/** Remove a stored value by key */
-	readonly remove: (key: string) => Promise<void>;
+	/** Fetch a string value by moduleName and key, if it has been stored */
+	readonly fetch: (moduleName: string, key: string) => Promise<string | undefined>;
+	/** Store a string value by moduleName and key */
+	readonly store: (moduleName: string, key: string, value: string) => Promise<void>;
+	/** Remove a stored value by moduleName and key */
+	readonly remove: (moduleName: string, key: string) => Promise<void>;
 }
 
 /** Optional response from server module initialization */
@@ -231,9 +239,14 @@ export const isServerModule = (someModule: any): someModule is ServerModule => {
 /** Response from storage module initialization, implementing storage capability */
 export interface StorageModuleCapabilities extends Required<Pick<ServerModuleInitResponse, 'storage'>> {}
 
-/** The shape of a module which implements storage capability */
+/** Initializer function for a storage module */
+export interface StorageModuleInitializer<TConfig extends ModuleConfig = ModuleConfig> {
+	(params: ServerModuleInitParams<TConfig>): Promise<StorageModuleCapabilities>;
+}
+
+/** A module which implements storage capability */
 export interface StorageModule<TConfig extends ModuleConfig = ModuleConfig> extends ServerModule<TConfig> {
-	readonly initialize: (params: ServerModuleInitParams<TConfig>) => Promise<StorageModuleCapabilities>;
+	readonly initialize: StorageModuleInitializer<TConfig>;
 }
 
 /** Predicate for validating server module's storage capability implementation shape */

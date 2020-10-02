@@ -1,6 +1,7 @@
 import {
-	StorageModule,
 	ModuleConfig,
+	StorageModule,
+	StorageModuleInitializer,
 } from '@rosebus/common';
 
 const moduleName = 'MemoryStorage';
@@ -9,9 +10,9 @@ export interface MemoryStorageConfig extends ModuleConfig {
 	verbose?: boolean;
 }
 
-type MemoryStore = Record<string, string>;
+type MemoryStore = Record<string, Record<string, string>>;
 
-const initialize: StorageModule<MemoryStorageConfig>['initialize'] = ({
+const initialize: StorageModuleInitializer<MemoryStorageConfig> = async ({
 	moduleId,
 	config: { verbose = false },
 }) => {
@@ -21,18 +22,28 @@ const initialize: StorageModule<MemoryStorageConfig>['initialize'] = ({
 		: undefined;
 	return {
 		storage: {
-			fetch: async (key) => {
-				const value = store[key];
-				log?.(`Fetched key '${key}': ${value === undefined ? '(not found)' : `'${value}'`}`);
+			fetch: async (name, key) => {
+				const value = store[name]?.[key];
+				log?.(`Fetched ('${name}', '${key}'): ${value === undefined ? 'not found' : `'${value}'`}`);
 				return value;
 			},
-			store: async (key, value) => {
-				store[key] = value;
-				log?.(`Stored key '${key}': '${value}'`);
+			store: async (name, key, value) => {
+				let found = false;
+				if (!store[name]) {
+					store[name] = {};
+				} else {
+					found = (typeof store[name][key] === 'string');
+				}
+				store[name][key] = value;
+				log?.(`Stored ${found ? 'overwritten' : 'new'} ('${name}', '${key}'): '${value}'`);
 			},
-			remove: async (key) => {
-				delete store[key];
-				log?.(`Removed key '${key}'`);
+			remove: async (name, key) => {
+				let found = false;
+				if (store[name]) {
+					found = (typeof store[name][key] === 'string');
+					delete store[name][key];
+				}
+				log?.(`Removed ${found ? '' : 'non'}existent ('${name}', '${key}')`);
 			},
 		},
 	};
