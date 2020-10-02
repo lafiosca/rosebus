@@ -1,5 +1,6 @@
 import {
 	Action,
+	DispatchAction,
 	ServerModule,
 	ServerModuleInitResponse,
 	ServerModuleSpec,
@@ -7,6 +8,7 @@ import {
 	isServerConfig,
 	rootActions,
 	rootModuleName,
+	rootModuleId,
 } from '@rosydoublecross/rosebus-common';
 import { Subject } from 'rxjs';
 // import { } from 'rxjs/operators';
@@ -20,14 +22,14 @@ import serverConfig from './config';
 // 2b. api for module
 // 3. internal representation of storage module configuration
 
-/** The source action bus from which server module observables originate */
+/** The raw source action bus from which server module observables originate */
 const action$ = new Subject<Action>();
 
 /** Cache of all imported and validated server modules by path */
 const moduleCache: Record<string, ServerModule> = {};
 
 /** A server module that has been loaded from the server config */
-interface LoadedModule extends ServerModuleSpec {
+interface LoadedModule extends Omit<ServerModuleSpec, 'moduleId'>, Required<Pick<ServerModuleSpec, 'moduleId'>> {
 	/** The server module imported from path */
 	serverModule: ServerModule;
 	/** The initialization response, if any */
@@ -39,6 +41,32 @@ type ModuleRegistry = Record<string, LoadedModule>;
 
 /** The registry of all loaded server modules */
 const moduleRegistry: ModuleRegistry = {};
+
+/** Emit an action dispatched by a module */
+const emitModuleAction = (
+	action: DispatchAction,
+	{
+		moduleId: fromModuleId,
+		serverModule: {
+			moduleName: fromModuleName,
+		},
+	}: LoadedModule,
+) => {
+	action$.next({
+		...action,
+		fromModuleName,
+		fromModuleId,
+	});
+};
+
+/** Emit a root action */
+const emitRootAction = (action: DispatchAction) => {
+	action$.next({
+		...action,
+		fromModuleName: rootModuleName,
+		fromModuleId: rootModuleId,
+	});
+};
 
 /** Import a module from path and validate that it is a ServerModule; error if import fails or invalid shape */
 const importModule = async (modulePath: string) => {
@@ -87,13 +115,7 @@ const initializeServer = async (config: unknown) => {
 		// TODO: examine init response for reaction stream feedback hookup
 		moduleRegistry[moduleId] = loadedModule;
 	});
-	// TODO: improve this to use function converting dispatch action from creator to normalized action
-	action$.next({
-		moduleName: rootModuleName,
-		type: rootActions.initComplete.type,
-		payload: {},
-		fromModuleId: rootModuleName,
-	});
+	emitRootAction(rootActions.initComplete({ moduleCount: serverModules.length }));
 };
 
 (async () => {

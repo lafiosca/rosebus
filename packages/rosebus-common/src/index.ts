@@ -1,6 +1,7 @@
 import type { FunctionComponent } from 'react';
 import type { Observable } from 'rxjs';
 
+/** Options for a dispatched action */
 export interface DispatchActionOptions {
 	/** If true, dispatch this action only to server modules */
 	targetServer?: boolean;
@@ -13,32 +14,32 @@ export interface DispatchActionOptions {
 }
 
 /** An action as it is dispatched by a module */
-export interface DispatchAction<TType extends string = string, TPayload = any> extends DispatchActionOptions {
+export interface DispatchAction<TName extends string = string, TType extends string = string, TPayload = any>
+	extends DispatchActionOptions {
+	/** Name of the module that defines this action */
+	moduleName: TName;
 	/** Type of the action, arbitrarily defined by module */
 	type: TType;
-	/** Payload of the action, arbitrarily defined by module */
+	/** Payload of the action, arbitrarily defined by module; must be JSON-serializable if crossing client-server bridge */
 	payload: TPayload;
 }
 
 /** An action as it arrives via the bus */
-export interface Action<TName extends string = string, TType extends string = string, TPayload = any> {
-	/** Name of the module that dispatches this action */
-	readonly moduleName: TName;
-	/** Type of the action, a string arbitrarily defined by module */
-	readonly type: TType;
-	/** Payload of the action, arbitrarily defined by module; must be JSON-serializable if crossing client-server bridge */
-	readonly payload: TPayload;
+export interface Action<TName extends string = string, TType extends string = string, TPayload = any>
+	extends DispatchAction<TName, TType, TPayload> {
+	/** The name of the module from which this action was dispatched */
+	fromModuleName: string;
 	/** The moduleId from which this action was dispatched */
-	readonly fromModuleId: string;
+	fromModuleId: string;
 	/** The clientId from which this action was dispatched, if client-originated */
-	readonly fromClientId?: string;
+	fromClientId?: string;
 	/** The screenId from which this action was dispatched, if client-originated */
-	readonly fromScreenId?: string;
+	fromScreenId?: string;
 }
 
 /** Action creator function without metadata */
-export interface BareActionCreator<TType extends string = string, TPayload = any> {
-	(payload: TPayload, options?: DispatchActionOptions): DispatchAction<TType, TPayload>;
+export interface BareActionCreator<TName extends string = string, TType extends string = string, TPayload = any> {
+	(payload: TPayload, options?: DispatchActionOptions): DispatchAction<TName, TType, TPayload>;
 }
 
 /** Action creator function */
@@ -46,8 +47,10 @@ export interface ActionCreator<
 	TName extends string = string,
 	TType extends string = string,
 	TPayload = any
-> extends BareActionCreator<TType, TPayload> {
+> extends BareActionCreator<TName, TType, TPayload> {
+	/** Name of the module that defines this action */
 	readonly moduleName: TName;
+	/** Type of the action, arbitrarily defined by module */
 	readonly type: TType;
 }
 
@@ -77,9 +80,10 @@ export const buildActionCreator = <
 	TType extends string = string
 >(moduleName: TName, type: TType) => (
 	<TPayload extends any>(): ActionCreator<TName, TType, TPayload> => {
-		const actionCreator: BareActionCreator<TType, TPayload> = (
+		const actionCreator: BareActionCreator<TName, TType, TPayload> = (
 			(payload: TPayload, options: DispatchActionOptions = {}) => ({
 				...options,
+				moduleName,
 				type,
 				payload,
 			})
