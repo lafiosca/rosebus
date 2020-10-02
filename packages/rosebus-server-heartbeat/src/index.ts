@@ -7,7 +7,7 @@ import {
 	isShutdown,
 	DispatchActionType,
 	ActionType,
-} from '@rosydoublecross/rosebus-common';
+} from '@rosebus/common';
 import { interval } from 'rxjs';
 import {
 	first,

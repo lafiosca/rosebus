@@ -1,5 +1,5 @@
 {
-	"name": "@rosydoublecross/rosebus-server",
+	"name": "@rosebus/server",
 	"version": "0.1.0",
 	"author": "Joe Lafiosca <joe@lafiosca.com>",
 	"license": "MIT",
