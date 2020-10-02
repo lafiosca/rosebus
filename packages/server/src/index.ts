@@ -9,7 +9,7 @@ import {
 	rootActions,
 	rootModuleName,
 	rootModuleId,
-} from '@rosydoublecross/rosebus-common';
+} from '@rosebus/common';
 import { Subject } from 'rxjs';
 // import { } from 'rxjs/operators';
 

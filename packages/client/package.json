@@ -1,5 +1,5 @@
 {
-	"name": "@rosydoublecross/rosebus-client",
+	"name": "@rosebus/client",
 	"version": "0.1.0",
 	"private": true,
 	"dependencies": {

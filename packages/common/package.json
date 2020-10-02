@@ -1,5 +1,5 @@
 {
-	"name": "@rosydoublecross/rosebus-common",
+	"name": "@rosebus/common",
 	"version": "0.1.0",
 	"author": "Joe Lafiosca <joe@lafiosca.com>",
 	"main": "build/index.js",

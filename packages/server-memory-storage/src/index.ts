@@ -1,7 +1,7 @@
 import {
 	StorageModule,
 	ModuleConfig,
-} from '@rosydoublecross/rosebus-common';
+} from '@rosebus/common';
 
 const moduleName = 'MemoryStorage';
 
