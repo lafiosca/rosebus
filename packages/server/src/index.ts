@@ -15,12 +15,8 @@ import { Subject } from 'rxjs';
 
 import serverConfig from './config';
 
-// Server needs to establish:
-// 1. action bus
-// 2. internal representation of loaded/configured modules
-// 2a. specific subscription for module
-// 2b. api for module
-// 3. internal representation of storage module configuration
+// TODO: internal representation of storage module configuration
+// TODO: socketIo client/server bridge
 
 /** The raw source action bus from which server module observables originate */
 const action$ = new Subject<Action>();
