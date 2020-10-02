@@ -21,7 +21,7 @@
 		"build": "yarn clean && yarn compile"
 	},
 	"dependencies": {
-		"@rosydoublecross/rosebus-types": "^0.1.0",
+		"@rosydoublecross/rosebus-common": "^0.1.0",
 		"rxjs": "^6.6.3"
 	},
 	"devDependencies": {

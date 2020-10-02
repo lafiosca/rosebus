@@ -1,4 +1,4 @@
-import { ServerConfig, StorageRole } from '@rosydoublecross/rosebus-types';
+import { ServerConfig, StorageRole } from '@rosydoublecross/rosebus-common';
 
 const config: ServerConfig = {
 	modules: [

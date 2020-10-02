@@ -9,6 +9,10 @@
 		"build": "yarn run clean && yarn run compile",
 		"serve": "yarn run build && node build/index.js"
 	},
-	"dependencies": {},
-	"devDependencies": {}
+	"dependencies": {
+		"@rosydoublecross/rosebus-common": "^0.1.0",
+		"@rosydoublecross/rosebus-server-heartbeat": "^0.1.0",
+		"@rosydoublecross/rosebus-storage-memory": "^0.1.0",
+		"rxjs": "^6.6.3"
+	}
 }

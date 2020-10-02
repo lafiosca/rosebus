@@ -11,7 +11,7 @@ import {
 	isActionOf,
 	DispatchActionType,
 	ActionType,
-} from '@rosydoublecross/rosebus-types';
+} from '@rosydoublecross/rosebus-common';
 import { filter, tap } from 'rxjs/operators';
 
 const moduleName = 'TextLog';
