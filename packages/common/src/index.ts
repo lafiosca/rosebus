@@ -212,7 +212,7 @@ export interface ServerModule<
 > extends BaseModule {
 	/** Module initialization method */
 	readonly initialize: (params: ServerModuleInitParams<TConfig, TDispatchAction>) => (
-		ServerModuleInitResponse<TDispatchAction> | void
+		Promise<ServerModuleInitResponse<TDispatchAction> | void>
 	);
 }
 
@@ -233,7 +233,7 @@ export interface StorageModuleCapabilities extends Required<Pick<ServerModuleIni
 
 /** The shape of a module which implements storage capability */
 export interface StorageModule<TConfig extends ModuleConfig = ModuleConfig> extends ServerModule<TConfig> {
-	readonly initialize: (params: ServerModuleInitParams<TConfig>) => StorageModuleCapabilities;
+	readonly initialize: (params: ServerModuleInitParams<TConfig>) => Promise<StorageModuleCapabilities>;
 }
 
 /** Predicate for validating server module's storage capability implementation shape */
