@@ -1,120 +1,29 @@
 import type { FunctionComponent } from 'react';
 import type { Observable } from 'rxjs';
 
-/** Options for a dispatched action */
-export interface DispatchActionOptions {
-	/** If true, dispatch this action only to server modules */
-	targetServer?: boolean;
-	/** A moduleId to which this action should be privately dispatched */
-	targetModuleId?: string;
-	/** A clientId to which this action should be privately dispatched */
-	targetClientId?: string;
-	/** A screenId to which this action should be privately dispatched */
-	targetScreenId?: string;
-}
+import {
+	Action,
+	DispatchAction,
+	ModuleApiDispatch,
+} from './actions';
+import { ServerBridgeOptions, ClientBridgeOptions } from './bridge';
 
-/** An action as it is dispatched by a module */
-export interface DispatchAction<TName extends string = string, TType extends string = string, TPayload = any>
-	extends DispatchActionOptions {
-	/** Name of the module that defines this action */
-	moduleName: TName;
-	/** Type of the action, arbitrarily defined by module */
-	type: TType;
-	/** Payload of the action, arbitrarily defined by module; must be JSON-serializable if crossing client-server bridge */
-	payload: TPayload;
-}
+export * from './actions';
+export * from './bridge';
+export * from './log';
 
-/** An action as it arrives via the bus */
-export interface Action<TName extends string = string, TType extends string = string, TPayload = any>
-	extends DispatchAction<TName, TType, TPayload> {
-	/** The name of the module from which this action was dispatched */
-	fromModuleName: string;
-	/** The moduleId from which this action was dispatched */
-	fromModuleId: string;
-	/** The clientId from which this action was dispatched, if client-originated */
-	fromClientId?: string;
-	/** The screenId from which this action was dispatched, if client-originated */
-	fromScreenId?: string;
-}
-
-/** Action creator function without metadata */
-export interface BareActionCreator<TName extends string = string, TType extends string = string, TPayload = any> {
-	(payload: TPayload, options?: DispatchActionOptions): DispatchAction<TName, TType, TPayload>;
-}
-
-/** Action creator function */
-export interface ActionCreator<
-	TName extends string = string,
-	TType extends string = string,
-	TPayload = any
-> extends BareActionCreator<TName, TType, TPayload> {
-	/** Name of the module that defines this action */
-	readonly moduleName: TName;
-	/** Type of the action, arbitrarily defined by module */
-	readonly type: TType;
-}
-
-/** Union type of dispatch actions returned by any action creator in a map, or from a single action creator */
-export type DispatchActionType<TActionCreators extends any> =
-	TActionCreators extends BareActionCreator
-		? ReturnType<TActionCreators>
-		: TActionCreators extends Record<any, any>
-			? {
-				[K in keyof TActionCreators]: DispatchActionType<TActionCreators[K]>;
-			}[keyof TActionCreators]
-			: never;
-
-/** Union type of actions originating from any action creator in a map, or from a single action creator */
-export type ActionType<TActionCreators extends any> =
-	TActionCreators extends ActionCreator<infer TName, infer TType, infer TPayload>
-		? Action<TName, TType, TPayload>
-		: TActionCreators extends Record<any, any>
-			? {
-				[K in keyof TActionCreators]: ActionType<TActionCreators[K]>;
-			}[keyof TActionCreators]
-			: never;
-
-/** Convenience function for building action creators */
-export const buildActionCreator = <
-	TName extends string = string,
-	TType extends string = string
->(moduleName: TName, type: TType) => (
-	<TPayload extends any>(): ActionCreator<TName, TType, TPayload> => {
-		const actionCreator: BareActionCreator<TName, TType, TPayload> = (
-			(payload: TPayload, options: DispatchActionOptions = {}) => ({
-				...options,
-				moduleName,
-				type,
-				payload,
-			})
-		);
-		return Object.assign(actionCreator, { moduleName, type });
-	}
-);
-
-/** Convenience function for filtering actions by action creator */
-export const isActionOf = <TName extends string, TType extends string, TPayload>(
-	actionCreator: ActionCreator<TName, TType, TPayload>,
-) => (
-	(action: Action): action is Action<TName, TType, TPayload> => (
-		action.moduleName === actionCreator.moduleName
-			&& action.type === actionCreator.type
-	)
-);
-
-/** Storage role of a module */
-export enum StorageRole {
-	/** None: this module is not used for storage */
-	None = 'none',
-	/** Primary: this module is used for fetching and storing */
-	Primary = 'primary',
-	/** Secondary: this module is used only for storing, e.g. as a backup */
-	Secondary = 'secondary',
-}
+/*
+ * Storage role of a module
+ *   none: this module is not used for storage
+ *   primary: this module is used for fetching and storing
+ *   secondary: this module is used only for storing, e.g. as a backup
+ */
+export type StorageRole = 'none' | 'primary' | 'secondary';
 
 /** Predicate for validating storage role */
 export const isStorageRole = (role: any): role is StorageRole => (
-	typeof role === 'string' && Object.values(StorageRole).includes(role as any)
+	typeof role === 'string'
+		&& (role === 'none' || role === 'primary' || role === 'secondary')
 );
 
 /** Configuration for a module, arbitrary per module */
@@ -127,11 +36,6 @@ export interface ModuleConfig {
 export const isModuleConfig = (config: any): config is ModuleConfig => (
 	!!config && typeof config === 'object'
 );
-
-/** The dispatch API method provided to a module */
-export interface ModuleApiDispatch<TDispatchAction extends DispatchAction = DispatchAction> {
-	(action: TDispatchAction): void;
-}
 
 /** The collection of storage API methods provided to a module */
 export interface ModuleApiStorage {
@@ -353,11 +257,11 @@ export const isServerModuleSpec = (spec: any): spec is ServerModuleSpec => {
 export interface ClientModuleSpec<TConfig extends ModuleConfig = ModuleConfig> extends BaseModuleSpec<TConfig> {}
 
 /** Configuration for the server */
-export interface ServerConfig {
+export interface ServerConfig extends ServerBridgeOptions {
+	/** If true, verbosely log messages about server activity */
+	verbose?: boolean;
 	/** The list of modules for the server to load */
 	modules: (ServerModuleSpec | ModulePath)[];
-	/** The port on which the server should listen for client connections */
-	bridgePort?: number;
 }
 
 /** Predicate for validating server config module item shape */
@@ -395,39 +299,9 @@ export interface ClientScreenConfig {
 }
 
 /** Configuration for the client */
-export interface ClientConfig {
-	/** The port on which the client should connect to the server */
-	bridgePort?: number;
+export interface ClientConfig extends ClientBridgeOptions {
 	/** The port on which the client should listen for web connections */
 	port?: number;
 	/** The list of screens the client can render */
 	screens: ClientScreenConfig[];
 }
-
-/** Root module name/id, for the bus itself */
-export const rootModuleName = 'Rosebus';
-export const rootModuleId = rootModuleName;
-
-/** Payload for root initComplete action */
-export interface InitCompletePayload {
-	/** Number of server modules loaded */
-	moduleCount: number;
-}
-
-/** Payload for root shutdown action */
-export interface ShutdownPayload {}
-
-/** Root action creators, for actions dispatched by the bus itself */
-export const rootActions = {
-	initComplete: buildActionCreator(rootModuleName, 'initComplete')<InitCompletePayload>(),
-	shutdown: buildActionCreator(rootModuleName, 'shutdown')<ShutdownPayload>(),
-};
-
-/** Union type of all actions originating from the bus itself */
-export type RootActionType = ActionType<typeof rootActions>;
-
-/** Convenience function for filtering root initComplete action */
-export const isInitComplete = isActionOf(rootActions.initComplete);
-
-/** Convenience function for filtering root shutdown action */
-export const isShutdown = isActionOf(rootActions.shutdown);

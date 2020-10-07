@@ -1,62 +1,30 @@
 import {
-	Action,
-	DispatchAction,
 	ModuleApiDispatch,
 	ModuleApiStorage,
 	ModuleApi,
 	ServerModule,
 	ServerModuleStorageImplementation,
 	ServerModuleInitParams,
-	ServerModuleInitResponse,
 	ServerModuleSpec,
-	StorageRole,
 	isServerConfig,
 	isServerModule,
 	isServerModuleCapabilityStorage,
 	rootActions,
-	rootModuleName,
-	rootModuleId,
 } from '@rosebus/common';
-import { Subject, Subscription } from 'rxjs';
-import { filter } from 'rxjs/operators';
 
+import {
+	buildModuleAction$,
+	emitModuleAction,
+	emitRootAction,
+} from './actions';
+import { LoadedModule } from './modules';
 import serverConfig from './config';
-
-// TODO: socketIo client/server bridge
-
-/** The raw source action stream from which server module observables originate */
-const action$ = new Subject<Action>();
-action$.subscribe(
-	({
-		moduleName,
-		type,
-		payload,
-		fromModuleId,
-		fromModuleName,
-	}) => {
-		const from = `${fromModuleId}${fromModuleName !== fromModuleId ? ` (${fromModuleName})` : ''}`;
-		const message = `(${moduleName}, ${type}, ${JSON.stringify(payload)})`;
-		console.log(`[${from}] ${message}`);
-	},
-);
 
 /** Cache of all imported and validated server modules by path */
 const moduleCache: Record<string, ServerModule> = {};
 
 /** Registry of module paths keyed by module name, for enforcing name uniqueness */
 const modulePathsByName: Record<string, string> = {};
-
-type RequiredPick<T, K extends keyof T> = Omit<T, K> & Required<Pick<T, K>>;
-
-/** A server module that has been loaded from the server config */
-interface LoadedModule extends RequiredPick<ServerModuleSpec, 'moduleId'> {
-	/** The server module imported from path */
-	serverModule: ServerModule;
-	/** The initialization response, if any */
-	initResponse?: ServerModuleInitResponse;
-	/** The reaction stream subscription, if any */
-	reactionSub?: Subscription;
-}
 
 /** Registry of loaded server modules, keyed by moduleId */
 type ModuleRegistry = Record<string, LoadedModule>;
@@ -77,51 +45,6 @@ const storageModuleRegistry: StorageModuleRegistry = {
 	primary: undefined,
 	secondaries: [],
 };
-
-/** Emit an action dispatched by a module */
-const emitModuleAction = (
-	action: DispatchAction,
-	{
-		moduleId: fromModuleId,
-		serverModule: {
-			moduleName: fromModuleName,
-		},
-	}: LoadedModule,
-) => {
-	action$.next({
-		...action,
-		fromModuleName,
-		fromModuleId,
-	});
-};
-
-/** Emit a root action */
-const emitRootAction = (action: DispatchAction) => {
-	action$.next({
-		...action,
-		fromModuleName: rootModuleName,
-		fromModuleId: rootModuleId,
-	});
-};
-
-/** Build an action stream specific to a loaded module */
-const buildModuleAction$ = ({ moduleId }: LoadedModule) => (
-	action$.pipe(
-		filter(({
-			targetModuleId,
-			targetClientId,
-			targetScreenId,
-		}) => {
-			if (targetClientId || targetScreenId) {
-				return false;
-			}
-			if (targetModuleId && moduleId !== targetModuleId) {
-				return false;
-			}
-			return true;
-		}),
-	)
-);
 
 const buildModuleApiDispatch = (loadedModule: LoadedModule): ModuleApiDispatch => (
 	(action) => emitModuleAction(action, loadedModule)
@@ -226,18 +149,18 @@ const initializeServer = async (config: unknown) => {
 			if (storage && !isServerModuleCapabilityStorage(storage)) {
 				throw new Error(`Module path '${moduleSpec.path}' returned an invalid storage implementation`);
 			}
-			if (storageRole && storageRole !== StorageRole.None) {
+			if (storageRole && storageRole !== 'none') {
 				if (!storage) {
 					throw new Error(`Module path '${moduleSpec.path}' is configured with storage role but does not implement storage`);
 				}
 				switch (storageRole) {
-					case StorageRole.Primary:
+					case 'primary':
 						if (storageModuleRegistry.primary) {
 							throw new Error('Server config specifies more than one primary storage module');
 						}
 						storageModuleRegistry.primary = storage;
 						break;
-					case StorageRole.Secondary:
+					case 'secondary':
 						storageModuleRegistry.secondaries.push(storage);
 						break;
 					default:
