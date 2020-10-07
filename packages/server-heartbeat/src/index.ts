@@ -3,8 +3,8 @@ import {
 	ModuleConfig,
 	buildActionCreator,
 	isActionOf,
-	isInitComplete,
-	isShutdown,
+	isInitCompleteRootAction,
+	isShutdownRootAction,
 	DispatchActionType,
 	ActionType,
 } from '@rosebus/common';
@@ -47,9 +47,9 @@ const Heartbeat: ServerModule<HeartbeatConfig, HeartbeatDispatchActionType> = {
 		config: { durationMs = defaultDurationMs },
 	}) => ({
 		reaction$: action$.pipe(
-			first(isInitComplete),
+			first(isInitCompleteRootAction),
 			mergeMap(() => interval(durationMs).pipe(
-				takeUntil(action$.pipe(first(isShutdown))),
+				takeUntil(action$.pipe(first(isShutdownRootAction))),
 				map((n) => actions.heartbeat({ beatCount: n + 1 })),
 			)),
 		),

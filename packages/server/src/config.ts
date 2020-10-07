@@ -1,10 +1,10 @@
-import { ServerConfig, StorageRole } from '@rosebus/common';
+import { ServerConfig } from '@rosebus/common';
 
 const config: ServerConfig = {
 	modules: [
 		{
 			path: '@rosebus/server-memory-storage',
-			storageRole: StorageRole.Primary,
+			storageRole: 'primary',
 		},
 		'@rosebus/server-heartbeat',
 	],
