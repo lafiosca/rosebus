@@ -2,7 +2,7 @@ import { LogLevel, LogMessage } from '@rosebus/common';
 import chalk from 'chalk';
 import { format } from 'date-fns';
 
-let logLevelThreshold: LogLevel = LogLevel.Info;
+let logLevelThreshold: LogLevel = LogLevel.Debug;
 
 const logLevelTags = [
 	'DBG',
