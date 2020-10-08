@@ -5,14 +5,14 @@ import {
 	bridgeEventServerAction,
 	bridgeEventClientAction,
 	defaultBridgePort,
-	isBridgeEventActionPayload,
+	isBridgeEventServerActionPayload,
 	rootActions,
 } from '@rosebus/common';
 import socketIo, { Socket } from 'socket.io';
 import { Subscription } from 'rxjs';
 
 import {
-	attachClientActionBridge,
+	subscribeClient,
 	emitAction,
 	emitRootAction,
 } from './actions';
@@ -33,7 +33,7 @@ const buildDisconnectHandler = (clientId: string, subscription: Subscription) =>
 
 const buildClientActionHandler = (clientId: string) => (
 	(payload: unknown) => {
-		if (isBridgeEventActionPayload(payload)) {
+		if (isBridgeEventServerActionPayload(payload)) {
 			const action: Action = {
 				...payload,
 				fromClientId: clientId,
@@ -56,7 +56,7 @@ const buildClientActionHandler = (clientId: string) => (
 const buildConnectionHandler = () => (
 	(socket: Socket) => {
 		const clientId = socket.id;
-		const subscription = attachClientActionBridge(
+		const subscription = subscribeClient(
 			clientId,
 			(action) => socket.emit(bridgeEventServerAction, action),
 		);

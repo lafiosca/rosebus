@@ -9,7 +9,7 @@ import { Subject } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 
 import { log } from './log';
-import { LoadedModule } from './modules';
+import { LoadedServerModule } from './modules';
 
 /** The raw source action stream from which server module observables originate */
 const action$ = new Subject<Action>();
@@ -45,7 +45,7 @@ export const emitModuleAction = (
 		serverModule: {
 			moduleName: fromModuleName,
 		},
-	}: LoadedModule,
+	}: LoadedServerModule,
 ) => {
 	action$.next({
 		...action,
@@ -64,25 +64,14 @@ export const emitRootAction = (action: DispatchAction) => {
 };
 
 /** Build an action stream specific to a loaded module */
-export const buildModuleAction$ = ({ moduleId }: LoadedModule) => (
+export const buildModuleAction$ = ({ moduleId }: LoadedServerModule) => (
 	action$.pipe(
-		filter(({
-			targetModuleId,
-			targetClientId,
-			targetScreenId,
-		}) => {
-			if (targetClientId || targetScreenId) {
-				return false;
-			}
-			if (targetModuleId && moduleId !== targetModuleId) {
-				return false;
-			}
-			return true;
-		}),
+		filter(({ targetClientId, targetScreenId }) => !targetClientId && !targetScreenId),
+		filter(({ targetModuleId }) => !targetModuleId || targetModuleId === moduleId),
 	)
 );
 
-export const attachClientActionBridge = (
+export const subscribeClient = (
 	clientId: string,
 	handler: (action: Action) => void,
 ) => (

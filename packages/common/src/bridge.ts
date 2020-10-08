@@ -18,14 +18,29 @@ export interface ClientBridgeOptions extends BridgeOptions {
 	bridgeHost?: string;
 }
 
+/** Bridge event name for a registration sent from client to server */
+export const bridgeEventClientRegistration = 'clientRegistration';
+
+/** Bridge event payload for a registration sent from client to server */
+export interface BridgeEventClientRegistration {
+	/** Unique client id of the registering client */
+	clientId: string;
+}
+
 /** Bridge event name for a bus action sent from server to client */
 export const bridgeEventServerAction = 'serverAction';
+
+/** Bridge event payload for a bus action sent from server to client */
+export interface BridgeEventServerActionPayload extends Action {}
+
+/** Predicate for validating bridge event server action payload shape */
+export const isBridgeEventServerActionPayload = isAction;
 
 /** Bridge event name for a bus action sent from client to server */
 export const bridgeEventClientAction = 'clientAction';
 
-/** Bridge event payload for a bus action */
-export interface BridgeEventActionPayload extends Action {}
+/** Bridge event payload for a bus action sent from client to server */
+export interface BridgeEventClientActionPayload extends Action {}
 
-/** Predicate for validating bridge event action payload shape */
-export const isBridgeEventActionPayload = isAction;
+/** Predicate for validating bridge event client action payload shape */
+export const isBridgeEventClientActionPayload = isAction;

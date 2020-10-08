@@ -3,7 +3,7 @@ import { Router } from '@reach/router';
 
 import NotFound from '../components/NotFound';
 import RouteNotFound from './RouteNotFound';
-import { RouteComponentProps } from '../helpers/navigation';
+import { RouteComponentProps } from '../services/navigation';
 import './AppRoot.css';
 
 interface Props extends RouteComponentProps {}

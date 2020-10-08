@@ -1,5 +1,7 @@
 import React, { FunctionComponent } from 'react';
-import { RouteComponentProps, Redirect } from '@reach/router';
+import { Redirect } from '@reach/router';
+
+import { RouteComponentProps } from '../services/navigation';
 
 interface Props extends RouteComponentProps {}
 

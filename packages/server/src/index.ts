@@ -17,7 +17,7 @@ import {
 	emitModuleAction,
 	emitRootAction,
 } from './actions';
-import { LoadedModule } from './modules';
+import { LoadedServerModule } from './modules';
 import serverConfig from './config';
 
 /** Cache of all imported and validated server modules by path */
@@ -27,7 +27,7 @@ const moduleCache: Record<string, ServerModule> = {};
 const modulePathsByName: Record<string, string> = {};
 
 /** Registry of loaded server modules, keyed by moduleId */
-type ModuleRegistry = Record<string, LoadedModule>;
+type ModuleRegistry = Record<string, LoadedServerModule>;
 
 /** The registry of all loaded server modules */
 const moduleRegistry: ModuleRegistry = {};
@@ -46,12 +46,12 @@ const storageModuleRegistry: StorageModuleRegistry = {
 	secondaries: [],
 };
 
-const buildModuleApiDispatch = (loadedModule: LoadedModule): ModuleApiDispatch => (
+const buildModuleApiDispatch = (loadedModule: LoadedServerModule): ModuleApiDispatch => (
 	(action) => emitModuleAction(action, loadedModule)
 );
 
 const buildModuleApiStorage = (
-	{ serverModule: { moduleName } }: LoadedModule,
+	{ serverModule: { moduleName } }: LoadedServerModule,
 ): ModuleApiStorage => ({
 	fetch: async (key: string) => {
 		const { primary } = storageModuleRegistry;
@@ -80,7 +80,7 @@ const buildModuleApiStorage = (
 });
 
 const buildModuleApi = (
-	loadedModule: LoadedModule,
+	loadedModule: LoadedServerModule,
 ): ModuleApi => ({
 	dispatch: buildModuleApiDispatch(loadedModule),
 	storage: buildModuleApiStorage(loadedModule),
@@ -131,7 +131,7 @@ const initializeServer = async (config: unknown) => {
 			moduleId = `${baseModuleId}.${j}`;
 			// TODO: warn user that they might want explicit module id
 		}
-		const loadedModule: LoadedModule = {
+		const loadedModule: LoadedServerModule = {
 			...moduleSpec,
 			serverModule,
 			moduleId,
