@@ -176,12 +176,26 @@ export interface ClientDisconnectPayload {
 	clientId: string;
 }
 
+/** Payload for root serverConnect action */
+export interface ServerConnectPayload {}
+
+/** Payload for root serverConnect action */
+export interface ServerDisconnectPayload {}
+
 /** Root action creators, for actions dispatched by the bus itself */
 export const rootActions = {
+	/** Dispatched by server when all server modules are initialized */
 	initComplete: buildActionCreator(rootModuleName, 'initComplete')<InitCompletePayload>(),
+	/** Dispatched by server when shutting down */
 	shutdown: buildActionCreator(rootModuleName, 'shutdown')<ShutdownPayload>(),
+	/** Dispatched by server when a client connects */
 	clientConnect: buildActionCreator(rootModuleName, 'clientConnect')<ClientConnectPayload>(),
+	/** Dispatched by server when a client disconnects */
 	clientDisconnect: buildActionCreator(rootModuleName, 'clientDisconnect')<ClientDisconnectPayload>(),
+	/** Dispatched locally by client when connected to server */
+	serverConnect: buildActionCreator(rootModuleName, 'serverConnect')<ServerConnectPayload>(),
+	/** Dispatched locally by client when disconnected from server */
+	serverDisconnect: buildActionCreator(rootModuleName, 'serverDisconnect')<ServerDisconnectPayload>(),
 };
 
 /** Union type of all actions originating from the bus itself */

@@ -2,12 +2,15 @@ import {
 	Action,
 	DispatchAction,
 	LogLevel,
+	rootModuleId,
+	rootModuleName,
 } from '@rosebus/common';
 import { Subject } from 'rxjs';
-import { filter } from 'rxjs/operators';
+import { filter, tap } from 'rxjs/operators';
 
 import { log } from './log';
 import { LoadedClientModule } from './modules';
+import { clientId } from './clientId';
 
 /** The raw source action stream from which client module observables originate */
 const action$ = new Subject<Action>();
@@ -30,6 +33,11 @@ action$.subscribe(
 	},
 );
 
+/** Emit an action that has been processed */
+export const emitAction = (action: Action) => {
+	action$.next(action);
+};
+
 /** Emit an action dispatched by a module */
 export const emitModuleAction = (
 	action: DispatchAction,
@@ -47,6 +55,16 @@ export const emitModuleAction = (
 	});
 };
 
+/** Emit an action dispatched by the client itself */
+export const emitRootAction = (action: DispatchAction) => {
+	action$.next({
+		...action,
+		fromModuleName: rootModuleName,
+		fromModuleId: rootModuleId,
+		fromClientId: clientId,
+	});
+};
+
 /** Build an action stream specific to a loaded module */
 export const buildModuleAction$ = (
 	{ moduleId }: LoadedClientModule,
@@ -54,9 +72,19 @@ export const buildModuleAction$ = (
 ) => (
 	action$.pipe(
 		filter(({ targetServer }) => !targetServer),
-		// TODO: work out client id logic
-		// filter(({ targetClientId }) => !targetClientId || targetClientId === clientId),
+		filter(({ targetClientId }) => !targetClientId || targetClientId === clientId),
 		filter(({ targetScreenId }) => !targetScreenId || targetScreenId === screenId),
 		filter(({ targetModuleId }) => !targetModuleId || targetModuleId === moduleId),
 	)
+);
+
+/** Subscribe a server-specific side-effect handler */
+export const subscribeServer = (
+	handler: (action: Action) => void,
+) => (
+	action$.pipe(
+		filter(({ fromClientId }) => fromClientId === clientId),
+		filter(({ targetClientId }) => targetClientId !== clientId),
+		tap(handler),
+	).subscribe()
 );

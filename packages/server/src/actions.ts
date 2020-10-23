@@ -71,6 +71,7 @@ export const buildModuleAction$ = ({ moduleId }: LoadedServerModule) => (
 	)
 );
 
+/** Subscribe a client-specific side-effect handler */
 export const subscribeClient = (
 	clientId: string,
 	handler: (action: Action) => void,

@@ -5,8 +5,10 @@ import {
 	bridgeEventServerAction,
 	bridgeEventClientAction,
 	defaultBridgePort,
-	isBridgeEventServerActionPayload,
+	isBridgeEventClientActionPayload,
 	rootActions,
+	bridgeEventClientRegistration,
+	isBridgeEventClientRegistrationPayload,
 } from '@rosebus/common';
 import socketIo, { Socket } from 'socket.io';
 import { Subscription } from 'rxjs';
@@ -33,7 +35,7 @@ const buildDisconnectHandler = (clientId: string, subscription: Subscription) =>
 
 const buildClientActionHandler = (clientId: string) => (
 	(payload: unknown) => {
-		if (isBridgeEventServerActionPayload(payload)) {
+		if (isBridgeEventClientActionPayload(payload)) {
 			const action: Action = {
 				...payload,
 				fromClientId: clientId,
@@ -53,28 +55,36 @@ const buildClientActionHandler = (clientId: string) => (
 	}
 );
 
-const buildConnectionHandler = () => (
-	(socket: Socket) => {
-		const clientId = socket.id;
-		const subscription = subscribeClient(
-			clientId,
-			(action) => socket.emit(bridgeEventServerAction, action),
-		);
-		socket.on(bridgeEventClientAction, buildClientActionHandler(clientId));
-		socket.on('disconnect', buildDisconnectHandler(clientId, subscription));
-		log({
-			text: `Client id ${clientId} connected`,
-			level: LogLevel.Info,
-		});
-		emitRootAction(rootActions.clientConnect({ clientId }));
-	}
-);
+const handleConnection = (socket: Socket) => {
+	socket.on(bridgeEventClientRegistration, (payload: unknown) => {
+		if (isBridgeEventClientRegistrationPayload(payload)) {
+			const { clientId } = payload;
+			const subscription = subscribeClient(
+				clientId,
+				(action) => socket.emit(bridgeEventServerAction, action),
+			);
+			socket.on(bridgeEventClientAction, buildClientActionHandler(clientId));
+			socket.on('disconnect', buildDisconnectHandler(clientId, subscription));
+			log({
+				text: `Client id ${clientId} connected from socket id ${socket.id}`,
+				level: LogLevel.Info,
+			});
+			emitRootAction(rootActions.clientConnect({ clientId }));
+		} else {
+			log({
+				text: `Received malformed client registration payload from socket id ${socket.id}; disconnecting`,
+				level: LogLevel.Error,
+			});
+			socket.disconnect();
+		}
+	});
+};
 
 export const initializeBridge = (
 	options: ServerBridgeOptions = {},
 ) => {
 	const bridgePort = options.bridgePort ?? defaultBridgePort;
-	io.on('connection', buildConnectionHandler());
+	io.on('connection', handleConnection);
 	io.listen(bridgePort);
 	log({
 		text: `Bridge listening on port ${bridgePort}`,
