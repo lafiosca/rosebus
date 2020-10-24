@@ -31,5 +31,6 @@ module.exports = {
 	},
 	ignorePatterns: [
 		'.eslintrc.js',
+		'config-overrides.js',
 	],
 };
