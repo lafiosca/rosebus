@@ -80,10 +80,10 @@ const handleConnection = (socket: Socket) => {
 	});
 };
 
-export const initializeBridge = (
-	options: ServerBridgeOptions = {},
-) => {
-	const bridgePort = options.bridgePort ?? defaultBridgePort;
+export const initializeBridge = (options: ServerBridgeOptions) => {
+	const {
+		bridgePort = defaultBridgePort,
+	} = options;
 	io.on('connection', handleConnection);
 	io.listen(bridgePort);
 	log({

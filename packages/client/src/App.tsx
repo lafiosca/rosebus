@@ -4,11 +4,12 @@ import React, {
 import { Router } from '@reach/router';
 
 import AppRoot from './routes/AppRoot';
+import { initializeBridge } from './services/bridge';
 
 const App = () => {
 	useEffect(
 		() => {
-			console.log('Start client');
+			initializeBridge({});
 		},
 		[],
 	);

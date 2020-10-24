@@ -16,6 +16,14 @@ import { emitAction, emitRootAction, subscribeServer } from './actions';
 import { clientId } from './clientId';
 import { log } from './log';
 
+const handleConnect = () => {
+	log({
+		text: 'Connected to server',
+		level: LogLevel.Info,
+	});
+	emitRootAction(rootActions.serverConnect({}, { targetClientId: clientId }));
+};
+
 const handleServerAction = (payload: unknown) => {
 	if (isBridgeEventServerActionPayload(payload)) {
 		const action: Action = payload;
@@ -31,14 +39,6 @@ const handleServerAction = (payload: unknown) => {
 			level: LogLevel.Warning,
 		});
 	}
-};
-
-const handleConnect = () => {
-	log({
-		text: 'Connected to server',
-		level: LogLevel.Info,
-	});
-	emitRootAction(rootActions.serverConnect({}, { targetClientId: clientId }));
 };
 
 const buildDisconnectHandler = (subscription: Subscription) => (
