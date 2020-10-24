@@ -19,6 +19,7 @@ import {
 } from './actions';
 import { LoadedServerModule } from './modules';
 import serverConfig from './config';
+import { initializeBridge } from './bridge';
 
 /** Cache of all imported and validated server modules by path */
 const moduleCache: Record<string, ServerModule> = {};
@@ -183,6 +184,7 @@ const initializeServer = async (config: unknown) => {
 		moduleRegistry[moduleId] = loadedModule;
 	}));
 	emitRootAction(rootActions.initComplete({ moduleCount: serverModules.length }));
+	initializeBridge(config);
 };
 
 (async () => {
