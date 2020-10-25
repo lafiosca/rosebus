@@ -66,4 +66,7 @@ export const initializeBridge = (options: ClientBridgeOptions) => {
 	);
 	socket.on('disconnect', buildDisconnectHandler(subscription));
 	socket.emit(bridgeEventClientRegistration, { clientId });
+	return () => {
+		socket.close();
+	};
 };

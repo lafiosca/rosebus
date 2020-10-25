@@ -1,24 +1,12 @@
-import React, {
-	useEffect,
-} from 'react';
+import React from 'react';
 import { Router } from '@reach/router';
 
-import AppRoot from './routes/AppRoot';
-import { initializeBridge } from './services/bridge';
+import Root from './routes/Root';
 
-const App = () => {
-	useEffect(
-		() => {
-			initializeBridge({});
-		},
-		[],
-	);
-
-	return (
-		<Router>
-			<AppRoot default />
-		</Router>
-	);
-};
+const App = () => (
+	<Router>
+		<Root default />
+	</Router>
+);
 
 export default App;

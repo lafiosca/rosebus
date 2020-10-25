@@ -1,22 +1,35 @@
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, useEffect } from 'react';
 import { Router } from '@reach/router';
 
 import NotFound from '../components/NotFound';
 import RouteNotFound from './RouteNotFound';
 import { RouteComponentProps } from '../services/navigation';
-import './AppRoot.css';
+import { initializeBridge } from '../services/bridge';
+import './Root.css';
 
 interface Props extends RouteComponentProps {}
 
-const AppRoot: FunctionComponent<Props> = ({ location }) => {
+const Root: FunctionComponent<Props> = ({ location }) => {
 	const notFound = location?.state?.notFound ?? false;
+
+	useEffect(
+		() => {
+			if (!notFound) {
+				return initializeBridge({});
+			}
+			return undefined;
+		},
+		[notFound],
+	);
+
 	return (
-		<div className="AppRoot">
+		<div className="Root">
 			<main>
 				{notFound ? (
 					<NotFound />
 				) : (
 					<Router>
+						{/* TODO: iterate through config routes */}
 						<RouteNotFound default />
 					</Router>
 				)}
@@ -25,4 +38,4 @@ const AppRoot: FunctionComponent<Props> = ({ location }) => {
 	);
 };
 
-export default AppRoot;
+export default Root;
