@@ -8,7 +8,8 @@
 		"compile": "tsc -p tsconfig.build.json",
 		"build": "yarn run clean && yarn run compile",
 		"build-server": "yarn run build",
-		"serve": "yarn run build && node build/index.js"
+		"serve": "yarn run build && node build/index.js",
+		"start": "yarn run serve"
 	},
 	"dependencies": {
 		"@rosebus/common": "^0.1.0",
