@@ -1,9 +1,8 @@
 import React, { FunctionComponent } from 'react';
-import { RouteComponentProps } from '@reach/router';
 
 import './ErrorPage.css';
 
-interface Props extends RouteComponentProps {
+interface Props {
 	errorTitle?: string;
 	errorMessage?: string;
 }
