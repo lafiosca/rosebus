@@ -9,8 +9,25 @@ export interface BridgeOptions {
 	bridgePort?: number;
 }
 
+/** Predicate for validating bridge options item shape */
+export const isBridgeOptions = (options: any): options is BridgeOptions => {
+	if (!options || typeof options !== 'object') {
+		return false;
+	}
+	const { bridgePort } = options;
+	if (bridgePort !== undefined && typeof bridgePort !== 'number') {
+		return false;
+	}
+	return true;
+};
+
 /** Server options for client-server bridge */
 export interface ServerBridgeOptions extends BridgeOptions {}
+
+/** Predicate for validating server bridge options item shape */
+export const isServerBridgeOptions = (options: any): options is ServerBridgeOptions => (
+	isBridgeOptions(options)
+);
 
 /** Client options for client-server bridge */
 export interface ClientBridgeOptions extends BridgeOptions {
@@ -19,6 +36,23 @@ export interface ClientBridgeOptions extends BridgeOptions {
 	/** The host to which the client should connect; defaults to localhost */
 	bridgeHost?: string;
 }
+
+/** Predicate for validating client bridge options item shape */
+export const isClientBridgeOptions = (options: any): options is ClientBridgeOptions => {
+	if (!isBridgeOptions(options)) {
+		return false;
+	}
+	const { bridgeScheme, bridgeHost } = options as any;
+	if (bridgeScheme !== undefined
+		&& (!bridgeScheme || typeof bridgeScheme !== 'string')) {
+		return false;
+	}
+	if (bridgeHost !== undefined
+		&& (!bridgeHost || typeof bridgeHost !== 'string')) {
+		return false;
+	}
+	return true;
+};
 
 /** Bridge event name for a registration sent from client to server */
 export const bridgeEventClientRegistration = 'clientRegistration';
