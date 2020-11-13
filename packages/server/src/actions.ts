@@ -9,7 +9,7 @@ import { Subject } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 
 import { log } from './log';
-import { LoadedServerModule } from './modules';
+import { LoadedServerModule } from './types';
 
 /** The raw source action stream from which server module observables originate */
 const action$ = new Subject<Action>();
