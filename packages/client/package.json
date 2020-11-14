@@ -5,6 +5,7 @@
 	"dependencies": {
 		"@reach/router": "^1.3.4",
 		"@rosebus/common": "^0.1.0",
+		"@rosebus/client-twitch-auth": "^0.1.0",
 		"chalk": "^4.1.0",
 		"date-fns": "^2.16.1",
 		"react": "^16.13.1",

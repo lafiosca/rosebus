@@ -5,7 +5,8 @@ import {
 	rootModuleId,
 	rootModuleName,
 } from '@rosebus/common';
-import { Subject } from 'rxjs';
+import { useRef } from 'react';
+import { Observable, Subject, Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 
 import { log } from './log';
@@ -34,7 +35,7 @@ action$.subscribe(
 );
 
 /** Emit an action that has been processed */
-export const emitAction = (action: Action) => {
+export const emitAction = (action: Action): void => {
 	action$.next(action);
 };
 
@@ -47,7 +48,7 @@ export const emitModuleAction = (
 			moduleName: fromModuleName,
 		},
 	}: LoadedClientModule,
-) => {
+): void => {
 	action$.next({
 		...action,
 		fromModuleName,
@@ -56,7 +57,7 @@ export const emitModuleAction = (
 };
 
 /** Emit an action dispatched by the client itself */
-export const emitRootAction = (action: DispatchAction) => {
+export const emitRootAction = (action: DispatchAction): void => {
 	action$.next({
 		...action,
 		fromModuleName: rootModuleName,
@@ -69,7 +70,7 @@ export const emitRootAction = (action: DispatchAction) => {
 export const buildModuleAction$ = (
 	{ moduleId }: LoadedClientModule,
 	screenId: string,
-) => (
+): Observable<Action> => (
 	action$.pipe(
 		filter(({ targetServer }) => !targetServer),
 		filter(({ targetClientId }) => !targetClientId || targetClientId === clientId),
@@ -78,10 +79,22 @@ export const buildModuleAction$ = (
 	)
 );
 
+/** Hook to consistently get the same built module action stream */
+export const useModuleAction$ = (
+	clientModule: LoadedClientModule,
+	screenId: string,
+): Observable<Action> => {
+	const action$Ref = useRef<Observable<Action>>();
+	if (!action$Ref.current) {
+		action$Ref.current = buildModuleAction$(clientModule, screenId);
+	}
+	return action$Ref.current;
+};
+
 /** Subscribe a server-specific side-effect handler */
 export const subscribeServer = (
 	handler: (action: Action) => void,
-) => (
+): Subscription => (
 	action$.pipe(
 		filter(({ fromClientId }) => fromClientId === clientId),
 		filter(({ targetClientId }) => targetClientId !== clientId),
