@@ -3,11 +3,12 @@ packages/rxxbot-client/public/assets/
 packages/rxxbot-server/src/config/
 !packages/rxxbot-server/src/config/*.example.*
 
-# yarn/build artifacts
+# yarn/lerna/build artifacts
 node_modules/
 build/
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log
 
 # system cruft
 .vscode
