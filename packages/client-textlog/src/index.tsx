@@ -29,10 +29,10 @@ export const actions = {
 };
 
 /** Union type of dispatch actions returned by any TextLog module action creator */
-export type HeartbeatDispatchActionType = DispatchActionType<typeof actions>;
+export type TextLogDispatchActionType = DispatchActionType<typeof actions>;
 
 /** Union type of all actions originating from the TextLog module */
-export type HearbeatActionType = ActionType<typeof actions>;
+export type TextLogActionType = ActionType<typeof actions>;
 
 /** TextLog config */
 export interface TextLogConfig extends ModuleConfig {
