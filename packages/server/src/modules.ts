@@ -1,8 +1,10 @@
 import {
 	isServerModule,
 	isServerModuleCapabilityStorage,
+	LogMessage,
 	ModuleApi,
 	ModuleApiDispatch,
+	ModuleApiLog,
 	ModuleApiStorage,
 	ServerConfig,
 	ServerModule,
@@ -13,6 +15,7 @@ import {
 
 import { LoadedServerModule } from './types';
 import { buildModuleAction$, emitModuleAction } from './actions';
+import { log } from './log';
 
 /** Cache of all imported and validated server modules by path */
 const moduleCache: Record<string, ServerModule> = {};
@@ -73,11 +76,24 @@ const buildModuleApiStorage = (
 	},
 });
 
+const buildModuleApiLog = (
+	{
+		moduleId,
+		serverModule: { moduleName },
+	}: LoadedServerModule,
+): ModuleApiLog => {
+	const channel = (moduleId === moduleName)
+		? moduleId
+		: `${moduleName}/${moduleId}`;
+	return (message: LogMessage | string) => log(message, channel);
+};
+
 const buildModuleApi = (
 	loadedModule: LoadedServerModule,
 ): ModuleApi => ({
 	dispatch: buildModuleApiDispatch(loadedModule),
 	storage: buildModuleApiStorage(loadedModule),
+	log: buildModuleApiLog(loadedModule),
 });
 
 /** Import a module from path and validate that it is a ServerModule; error if import fails or invalid shape */

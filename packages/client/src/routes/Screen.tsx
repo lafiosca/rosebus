@@ -25,6 +25,7 @@ const Screen: FunctionComponent<Props> = () => {
 						store: async () => {},
 						remove: async () => {},
 					},
+					log: () => {},
 				}}
 				action$={action$}
 			/>

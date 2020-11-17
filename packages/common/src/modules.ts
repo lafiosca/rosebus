@@ -6,6 +6,7 @@ import {
 	DispatchAction,
 	ModuleApiDispatch,
 } from './actions';
+import { LogMessage } from './log';
 
 /*
  * Storage role of a module
@@ -42,12 +43,19 @@ export interface ModuleApiStorage {
 	readonly remove: (key: string) => Promise<void>;
 }
 
+/** The log API method provided to a module */
+export interface ModuleApiLog {
+	(message: LogMessage | string): void;
+}
+
 /** The collection of API methods provided to a module */
 export interface ModuleApi<TDispatchAction extends DispatchAction = DispatchAction> {
 	/** Dispatch an action to the bus */
 	readonly dispatch: ModuleApiDispatch<TDispatchAction>;
 	/** Storage API methods */
 	readonly storage: ModuleApiStorage;
+	/** Write a message to the log */
+	readonly log: ModuleApiLog;
 }
 
 /** Parameters provided when initializing a module */

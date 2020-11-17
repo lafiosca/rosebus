@@ -4,19 +4,27 @@ import {
 	buildActionCreator,
 	isActionOf,
 	isInitCompleteRootAction,
-	isShutdownRootAction,
 	DispatchActionType,
 	ActionType,
+	LogLevel,
 } from '@rosebus/common';
-import { } from 'rxjs';
+import { EMPTY, from } from 'rxjs';
 import {
+	catchError,
+	filter,
+	first,
+	mergeMap,
+	tap,
 } from 'rxjs/operators';
 
 const moduleName = 'Twitch';
 
-export interface AuthenticatePayload {
+export interface AuthCredentials {
+	accessToken: string;
 	refreshToken: string;
 }
+
+export interface AuthenticatePayload extends AuthCredentials {}
 
 export const actions = {
 	authenticate: buildActionCreator(moduleName, 'authenticate')<AuthenticatePayload>(),
@@ -37,14 +45,44 @@ const Twitch: ServerModule<TwitchConfig, TwitchDispatchActionType> = {
 	moduleName,
 	initialize: async ({
 		action$,
-		config: {
-			appClientId,
-			appClientSecret,
+		api: {
+			storage,
+			log,
 		},
+		// config: {
+		// 	appClientId,
+		// 	appClientSecret,
+		// },
 	}) => {
-		// attempt to fetch refresh token from storage after init
-		// listen for auth actions to set refresh token
-		// in either case, when we have a refresh token, set up API event monitoring
+		action$.pipe(
+			first(isInitCompleteRootAction),
+			mergeMap(() => from(storage.fetch<AuthCredentials>('refreshToken')).pipe(
+				catchError((error) => {
+					log({
+						level: LogLevel.Error,
+						text: `Failed to fetch credentials from storage: ${error?.message}`,
+					});
+					return EMPTY;
+				}),
+			)),
+			tap((credentials) => {
+				if (credentials) {
+					log('Initializing with previously stored credentials');
+					// TODO: initialize
+				} else {
+					log('No credentials stored; awaiting authentication');
+				}
+			}),
+		).subscribe();
+		action$.pipe(
+			filter(isActionOf(actions.authenticate)),
+			tap(({
+				// payload: { accessToken, refreshToken },
+				fromModuleId,
+			}) => {
+				log(`Received new credentials from moduleId ${fromModuleId}`);
+			}),
+		).subscribe();
 	},
 };
 
