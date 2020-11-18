@@ -16,8 +16,17 @@ import {
 	mergeMap,
 	tap,
 } from 'rxjs/operators';
+import {
+	AccessToken,
+	RefreshableAuthProvider,
+	StaticAuthProvider,
+} from 'twitch-auth';
+import { ApiClient } from 'twitch';
+import { ChatClient } from 'twitch-chat-client';
 
 const moduleName = 'Twitch';
+
+const storageKeyRefreshToken = 'refreshToken';
 
 export interface AuthCredentials {
 	accessToken: string;
@@ -49,11 +58,77 @@ const Twitch: ServerModule<TwitchConfig, TwitchDispatchActionType> = {
 			storage,
 			log,
 		},
-		// config: {
-		// 	appClientId,
-		// 	appClientSecret,
-		// },
+		config: {
+			appClientId,
+			appClientSecret,
+		},
 	}) => {
+		let chatClient: ChatClient | undefined;
+		let cleanupListeners: (() => void) | undefined;
+
+		const onRefresh = async ({ accessToken, refreshToken }: AccessToken) => {
+			try {
+				await storage.store<AuthCredentials>(
+					storageKeyRefreshToken,
+					{ accessToken, refreshToken },
+				);
+			} catch (error) {
+				log({
+					level: LogLevel.Error,
+					text: `Failed to store refreshed credentials: ${error?.message}`,
+				});
+			}
+		};
+
+		const setupListeners = async (
+			{ accessToken, refreshToken }: AuthCredentials,
+		) => {
+			if (cleanupListeners) {
+				cleanupListeners();
+				cleanupListeners = undefined;
+			}
+
+			const authProvider = new RefreshableAuthProvider(
+				new StaticAuthProvider(appClientId, accessToken),
+				{
+					refreshToken,
+					onRefresh,
+					clientSecret: appClientSecret,
+					expiry: new Date(0),
+				},
+			);
+
+			log('Connecting to Twitch API');
+			const apiClient = new ApiClient({ authProvider });
+			const tokenInfo = await apiClient.getTokenInfo();
+			const { userId, userName } = tokenInfo;
+			log(`Authenticated to Twitch as ${userName} (${userId})`);
+
+			log('Creating Twitch chat listeners');
+			chatClient = new ChatClient(authProvider, { channels: [userName] });
+			const listeners = [
+				chatClient.onMessage(
+					(
+						channel,
+						user,
+						message,
+						msg,
+					) => {
+						log(`${channel} ${user}: ${message}`);
+						log(JSON.stringify(msg, null, 2));
+					},
+				),
+			];
+			cleanupListeners = () => {
+				log('Cleaning up Twitch chat listeners');
+				listeners.forEach((listener) => listener.unbind());
+				log('Quitting Twitch chat');
+				chatClient?.quit();
+			};
+			log('Connecting to Twitch chat');
+			chatClient.connect();
+		};
+
 		action$.pipe(
 			first(isInitCompleteRootAction),
 			mergeMap(() => from(storage.fetch<AuthCredentials>('refreshToken')).pipe(
@@ -68,19 +143,21 @@ const Twitch: ServerModule<TwitchConfig, TwitchDispatchActionType> = {
 			tap((credentials) => {
 				if (credentials) {
 					log('Initializing with previously stored credentials');
-					// TODO: initialize
+					setupListeners(credentials);
 				} else {
 					log('No credentials stored; awaiting authentication');
 				}
 			}),
 		).subscribe();
+
 		action$.pipe(
 			filter(isActionOf(actions.authenticate)),
 			tap(({
-				// payload: { accessToken, refreshToken },
+				payload,
 				fromModuleId,
 			}) => {
 				log(`Received new credentials from moduleId ${fromModuleId}`);
+				setupListeners(payload);
 			}),
 		).subscribe();
 	},

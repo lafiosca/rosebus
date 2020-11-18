@@ -23,6 +23,7 @@
 	},
 	"dependencies": {
 		"@rosebus/common": "^0.1.0",
+		"@rosebus/server-twitch": "^0.1.0",
 		"react-simple-oauth2-login": "^0.2.0"
 	},
 	"devDependencies": {

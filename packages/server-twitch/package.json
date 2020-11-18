@@ -24,6 +24,11 @@
 	},
 	"dependencies": {
 		"@rosebus/common": "^0.1.0",
-		"rxjs": "^6.6.3"
+		"rxjs": "^6.6.3",
+		"twitch": "^4.2.7",
+		"twitch-auth": "^4.2.7",
+		"twitch-chat-client": "^4.2.7",
+		"twitch-pubsub-client": "^4.2.7",
+		"twitch-webhooks": "^4.2.7"
 	}
 }
