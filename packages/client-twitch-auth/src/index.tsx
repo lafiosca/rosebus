@@ -60,7 +60,7 @@ const ScreenView: FunctionComponent<ClientModuleComponentProps<TwitchAuthConfig,
 			<h1>Twitch Auth</h1>
 			<OAuth2Login
 				authorizationUrl="https://id.twitch.tv/oauth2/authorize"
-				responseType="token"
+				responseType="code"
 				clientId={appClientId}
 				redirectUri={href}
 				scope={scopes.join('+')}
