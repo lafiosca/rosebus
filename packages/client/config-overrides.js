@@ -13,5 +13,13 @@ module.exports = (config) => {
 	tsRule.include = undefined;
 	tsRule.exclude = /node_modules/;
 
+	// Workaround problem with mjs imports (e.g., twitch library)
+	// per https://github.com/reactioncommerce/reaction-component-library/issues/399#issuecomment-467860022
+	config.module.rules.push({
+		test: /\.mjs$/,
+		include: /node_modules/,
+		type: 'javascript/auto',
+	});
+
 	return config;
 };

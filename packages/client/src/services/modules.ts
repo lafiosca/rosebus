@@ -1,5 +1,4 @@
 import {
-	Action,
 	LogMessage,
 	ModuleApiDispatch,
 	ModuleApiLog,

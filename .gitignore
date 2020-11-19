@@ -1,7 +1,5 @@
 # configuration and sensitive information
-packages/rxxbot-client/public/assets/
-packages/rxxbot-server/src/config/
-!packages/rxxbot-server/src/config/*.example.*
+packages/server/src/config.ts
 
 # yarn/lerna/build artifacts
 node_modules/

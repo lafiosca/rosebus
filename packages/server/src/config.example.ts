@@ -6,7 +6,12 @@ const config: ServerConfig = {
 			path: '@rosebus/server-memory-storage',
 			storageRole: 'primary',
 		},
-		'@rosebus/server-heartbeat',
+		{
+			path: '@rosebus/server-heartbeat',
+			config: {
+				durationMs: 30000,
+			},
+		},
 	],
 };
 
