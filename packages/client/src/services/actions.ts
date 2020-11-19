@@ -10,7 +10,7 @@ import { Observable, Subject, Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 
 import { log } from './log';
-import { LoadedClientModule } from './modules';
+import { LoadedClientModule } from './types';
 import { clientId } from './clientId';
 
 /** The raw source action stream from which client module observables originate */
@@ -49,11 +49,14 @@ export const emitModuleAction = (
 			moduleName: fromModuleName,
 		},
 	}: LoadedClientModule,
+	screenId: string,
 ): void => {
 	action$.next({
 		...action,
 		fromModuleName,
 		fromModuleId,
+		fromClientId: clientId,
+		fromScreenId: screenId,
 	});
 };
 

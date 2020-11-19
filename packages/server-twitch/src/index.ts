@@ -13,7 +13,6 @@ import {
 	EMPTY,
 	from,
 	merge,
-	of,
 } from 'rxjs';
 import {
 	catchError,
@@ -23,21 +22,32 @@ import {
 	mergeMap,
 	tap,
 } from 'rxjs/operators';
+import { ajax } from 'rxjs/ajax';
 import {
 	AccessToken,
 	RefreshableAuthProvider,
 	StaticAuthProvider,
-	// TokenInfo,
+	TokenInfo,
 } from 'twitch-auth';
 import { ApiClient } from 'twitch';
 import { ChatClient } from 'twitch-chat-client';
 
 const moduleName = 'Twitch';
 
+const twitchTokenUrl = 'https://id.twitch.tv/oauth2/token';
+
 const defaultAuthModuleId = 'TwitchAuth';
 const storageKeyRefreshToken = 'refreshToken';
 
-export interface AuthCredentials {
+interface TwitchTokenResponse {
+	access_token: string;
+	refresh_token: string;
+	expires_in: number;
+	scope: string[];
+	token_type: 'bearer';
+}
+
+export interface Credentials {
 	accessToken: string;
 	refreshToken: string;
 }
@@ -48,10 +58,11 @@ export interface ShareConfigPayload {
 
 export interface AuthorizePayload {
 	authorizationCode: string;
+	redirectUri: string;
 }
 
 export interface IdentifyPayload {
-	// tokenInfo: TokenInfo;
+	tokenInfo: TokenInfo;
 }
 
 export const actions = {
@@ -96,7 +107,7 @@ const Twitch: ServerModule<TwitchConfig, TwitchDispatchActionType> = {
 
 		const onRefresh = async ({ accessToken, refreshToken }: AccessToken) => {
 			try {
-				await storage.store<AuthCredentials>(
+				await storage.store<Credentials>(
 					storageKeyRefreshToken,
 					{ accessToken, refreshToken },
 				);
@@ -109,7 +120,7 @@ const Twitch: ServerModule<TwitchConfig, TwitchDispatchActionType> = {
 		};
 
 		const setupListeners = async (
-			{ accessToken, refreshToken }: AuthCredentials,
+			{ accessToken, refreshToken }: Credentials,
 		) => {
 			if (cleanupListeners) {
 				cleanupListeners();
@@ -147,19 +158,23 @@ const Twitch: ServerModule<TwitchConfig, TwitchDispatchActionType> = {
 					},
 				),
 			];
+
 			cleanupListeners = () => {
 				log('Cleaning up Twitch chat listeners');
 				listeners.forEach((listener) => listener.unbind());
 				log('Quitting Twitch chat');
 				chatClient?.quit();
 			};
+
 			log('Connecting to Twitch chat');
 			chatClient.connect();
+
+			return tokenInfo;
 		};
 
 		action$.pipe(
 			first(isInitCompleteRootAction),
-			mergeMap(() => from(storage.fetch<AuthCredentials>('refreshToken')).pipe(
+			mergeMap(() => from(storage.fetch<Credentials>('refreshToken')).pipe(
 				catchError((error) => {
 					log({
 						level: LogLevel.Error,
@@ -173,29 +188,68 @@ const Twitch: ServerModule<TwitchConfig, TwitchDispatchActionType> = {
 					log('Initializing with previously stored credentials');
 					setupListeners(credentials);
 				} else {
-					log('No credentials stored; awaiting authentication');
+					log('No credentials stored; awaiting authorization');
 				}
 			}),
 		).subscribe();
 
+		const authModuleAction$ = action$.pipe(
+			filter(isActionFromModuleId(authModuleId)),
+		);
+
 		return {
 			reaction$: merge(
-				action$.pipe(
+				authModuleAction$.pipe(
 					filter(isActionOf(actions.requestConfig)),
-					filter(isActionFromModuleId(authModuleId)),
-					map(() => actions.shareConfig({
-						appClientId,
-					})),
+					map(() => actions.shareConfig(
+						{ appClientId },
+						{
+							targetModuleId: authModuleId,
+							sensitive: true,
+						},
+					)),
 				),
-				action$.pipe(
+				authModuleAction$.pipe(
 					filter(isActionOf(actions.authorize)),
-					filter(isActionFromModuleId(authModuleId)),
 					mergeMap(({
-						payload: { authorizationCode },
+						payload: {
+							authorizationCode,
+							redirectUri,
+						},
 					}) => {
-						log(`Received new authorization from moduleId ${authModuleId}: ${authorizationCode}`);
-						return of(actions.identify({}));
+						log(`Received authorization from moduleId ${authModuleId}: ${authorizationCode}`);
+						const queryParts = [
+							`client_id=${appClientId}`,
+							`client_secret=${appClientSecret}`,
+							`code=${authorizationCode}`,
+							'grant_type=authorization_code',
+							`redirect_uri=${redirectUri}`,
+						];
+						return ajax.post(
+							`${twitchTokenUrl}?${queryParts.join('&')}`,
+							null,
+							{ 'Content-Type': 'application/json' },
+						);
 					}),
+					catchError((error) => {
+						const statusCode: number = error?.response?.statusCode ?? 0;
+						const message: string = statusCode === 0
+							? 'Connection error'
+							: (error?.response?.message ?? 'Unrecognized error');
+						log({
+							level: LogLevel.Error,
+							text: `Failed to convert authorization to tokens: ${message} (statusCode: ${statusCode})`,
+						});
+						return EMPTY;
+					}),
+					map(({ response }) => response as TwitchTokenResponse),
+					mergeMap(({
+						access_token: accessToken,
+						refresh_token: refreshToken,
+					}) => (
+						setupListeners({ accessToken, refreshToken })
+					)),
+					map((tokenInfo) => actions.identify({ tokenInfo })),
 				),
 			),
 		};

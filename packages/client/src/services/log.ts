@@ -28,13 +28,16 @@ const normalizeLogMessage = (message: LogMessage | string): Required<LogMessage>
 	return { text, level };
 };
 
-export const log = (message: LogMessage | string): void => {
+export const log = (
+	message: LogMessage | string,
+	channel?: string,
+): void => {
 	const { text, level } = normalizeLogMessage(message);
 	if (level >= logLevelThreshold) {
 		const date = format(new Date(), 'y-MM-dd HH:mm:ss');
 		const tag = logLevelTags[level];
 		const color = logLevelColors[level];
-		console.log(`[${date}] ${color(`${tag}: ${text}`)}`);
+		console.log(`[${date}]${channel ? ` [${channel}]` : ''} ${color(`${tag}: ${text}`)}`);
 	}
 };
 

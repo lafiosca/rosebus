@@ -1,15 +1,55 @@
 import {
-	ClientModule,
-	ClientModuleSpec,
+	Action,
+	LogMessage,
+	ModuleApiDispatch,
+	ModuleApiLog,
 } from '@rosebus/common';
-import { Subscription } from 'rxjs';
+import { useRef } from 'react';
 
-type RequiredPick<T, K extends keyof T> = Omit<T, K> & Required<Pick<T, K>>;
+import { LoadedClientModule } from './types';
+import { emitModuleAction } from './actions';
+import { log } from './log';
 
-/** A server module that has been loaded from the server config */
-export interface LoadedClientModule extends RequiredPick<ClientModuleSpec, 'moduleId'> {
-	/** The client module imported from path */
-	clientModule: ClientModule;
-	/** The reaction stream subscription, if any */
-	reactionSub?: Subscription;
-}
+const buildModuleApiDispatch = (
+	loadedModule: LoadedClientModule,
+	screenId: string,
+): ModuleApiDispatch => (
+	(action) => emitModuleAction(action, loadedModule, screenId)
+);
+
+/** Hook to consistently get the same built module API dispatch method */
+export const useModuleApiDispatch = (
+	loadedModule: LoadedClientModule,
+	screenId: string,
+): ModuleApiDispatch => {
+	const dispatchRef = useRef<ModuleApiDispatch>();
+	if (!dispatchRef.current) {
+		dispatchRef.current = buildModuleApiDispatch(loadedModule, screenId);
+	}
+	return dispatchRef.current;
+};
+
+const buildModuleApiLog = (
+	{
+		moduleId,
+		clientModule: { moduleName },
+	}: LoadedClientModule,
+	screenId: string,
+): ModuleApiLog => {
+	const channel = (moduleId === moduleName)
+		? `${screenId}> ${moduleId}`
+		: `${screenId}> ${moduleName}/${moduleId}`;
+	return (message: LogMessage | string) => log(message, channel);
+};
+
+/** Hook to consistently get the same built module API log method */
+export const useModuleApiLog = (
+	loadedModule: LoadedClientModule,
+	screenId: string,
+): ModuleApiLog => {
+	const logRef = useRef<ModuleApiLog>();
+	if (!logRef.current) {
+		logRef.current = buildModuleApiLog(loadedModule, screenId);
+	}
+	return logRef.current;
+};
