@@ -24,9 +24,10 @@ action$.subscribe(
 		payload,
 		fromModuleId,
 		fromModuleName,
+		sensitive,
 	}) => {
 		const from = `${fromModuleId}${fromModuleName !== fromModuleId ? ` (${fromModuleName})` : ''}`;
-		const message = `(${moduleName}, ${type}, ${JSON.stringify(payload)})`;
+		const message = `(${moduleName}, ${type}, ${sensitive ? '*****' : JSON.stringify(payload)})`;
 		log({
 			text: `[${from}] ${message}`,
 			level: LogLevel.Debug,

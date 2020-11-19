@@ -3,16 +3,23 @@ import {
 	ModuleConfig,
 	buildActionCreator,
 	isActionOf,
+	isActionFromModuleId,
 	isInitCompleteRootAction,
 	DispatchActionType,
 	ActionType,
 	LogLevel,
 } from '@rosebus/common';
-import { EMPTY, from } from 'rxjs';
+import {
+	EMPTY,
+	from,
+	merge,
+	of,
+} from 'rxjs';
 import {
 	catchError,
 	filter,
 	first,
+	map,
 	mergeMap,
 	tap,
 } from 'rxjs/operators';
@@ -20,12 +27,14 @@ import {
 	AccessToken,
 	RefreshableAuthProvider,
 	StaticAuthProvider,
+	// TokenInfo,
 } from 'twitch-auth';
 import { ApiClient } from 'twitch';
 import { ChatClient } from 'twitch-chat-client';
 
 const moduleName = 'Twitch';
 
+const defaultAuthModuleId = 'TwitchAuth';
 const storageKeyRefreshToken = 'refreshToken';
 
 export interface AuthCredentials {
@@ -33,10 +42,23 @@ export interface AuthCredentials {
 	refreshToken: string;
 }
 
-export interface AuthenticatePayload extends AuthCredentials {}
+export interface ShareConfigPayload {
+	appClientId: string;
+}
+
+export interface AuthorizePayload {
+	authorizationCode: string;
+}
+
+export interface IdentifyPayload {
+	// tokenInfo: TokenInfo;
+}
 
 export const actions = {
-	authenticate: buildActionCreator(moduleName, 'authenticate')<AuthenticatePayload>(),
+	requestConfig: buildActionCreator(moduleName, 'requestConfig')<void>(),
+	shareConfig: buildActionCreator(moduleName, 'shareConfig')<ShareConfigPayload>(),
+	authorize: buildActionCreator(moduleName, 'authorize')<AuthorizePayload>(),
+	identify: buildActionCreator(moduleName, 'identify')<IdentifyPayload>(),
 };
 
 /** Union type of dispatch actions returned by any Heartbeat module action creator */
@@ -45,9 +67,14 @@ export type TwitchDispatchActionType = DispatchActionType<typeof actions>;
 /** Union type of all actions originating from the Heartbeat module */
 export type TwitchActionType = ActionType<typeof actions>;
 
+/** Config for the Twitch server module */
 export interface TwitchConfig extends ModuleConfig {
+	/** Twitch app client id */
 	appClientId: string;
+	/** Twitch app client secret */
 	appClientSecret: string;
+	/** Twitch auth module id to connect with (default: "TwitchAuth") */
+	authModuleId?: string;
 }
 
 const Twitch: ServerModule<TwitchConfig, TwitchDispatchActionType> = {
@@ -61,6 +88,7 @@ const Twitch: ServerModule<TwitchConfig, TwitchDispatchActionType> = {
 		config: {
 			appClientId,
 			appClientSecret,
+			authModuleId = defaultAuthModuleId,
 		},
 	}) => {
 		let chatClient: ChatClient | undefined;
@@ -150,16 +178,27 @@ const Twitch: ServerModule<TwitchConfig, TwitchDispatchActionType> = {
 			}),
 		).subscribe();
 
-		action$.pipe(
-			filter(isActionOf(actions.authenticate)),
-			tap(({
-				payload,
-				fromModuleId,
-			}) => {
-				log(`Received new credentials from moduleId ${fromModuleId}`);
-				setupListeners(payload);
-			}),
-		).subscribe();
+		return {
+			reaction$: merge(
+				action$.pipe(
+					filter(isActionOf(actions.requestConfig)),
+					filter(isActionFromModuleId(authModuleId)),
+					map(() => actions.shareConfig({
+						appClientId,
+					})),
+				),
+				action$.pipe(
+					filter(isActionOf(actions.authorize)),
+					filter(isActionFromModuleId(authModuleId)),
+					mergeMap(({
+						payload: { authorizationCode },
+					}) => {
+						log(`Received new authorization from moduleId ${authModuleId}: ${authorizationCode}`);
+						return of(actions.identify({}));
+					}),
+				),
+			),
+		};
 	},
 };
 

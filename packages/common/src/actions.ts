@@ -8,6 +8,8 @@ export interface DispatchActionOptions {
 	targetClientId?: string;
 	/** A screenId to which this action should be privately dispatched */
 	targetScreenId?: string;
+	/** If true, this action's payload contains sensitive information */
+	sensitive?: boolean;
 }
 
 /** An action as it is dispatched by a module */
@@ -144,6 +146,13 @@ export const isActionOf = <TName extends string, TType extends string, TPayload>
 		action.moduleName === actionCreator.moduleName
 			&& action.type === actionCreator.type
 	)
+);
+
+/** Convenience function for filtering actions by module id */
+export const isActionFromModuleId = <TName extends string, TType extends string, TPayload>(
+	fromModuleId: string,
+) => (
+	(action: Action<TName, TType, TPayload>) => action.fromModuleId === fromModuleId
 );
 
 /** The dispatch API method provided to a module */
