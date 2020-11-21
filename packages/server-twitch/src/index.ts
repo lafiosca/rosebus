@@ -9,6 +9,7 @@ import {
 	ActionType,
 	LogLevel,
 } from '@rosebus/common';
+import { XMLHttpRequest } from 'xmlhttprequest';
 import {
 	EMPTY,
 	from,
@@ -221,21 +222,22 @@ const Twitch: ServerModule<TwitchConfig, TwitchDispatchActionType> = {
 						const queryParts = [
 							`client_id=${appClientId}`,
 							`client_secret=${appClientSecret}`,
-							`code=${authorizationCode}`,
+							`code=${encodeURIComponent(authorizationCode)}`,
 							'grant_type=authorization_code',
-							`redirect_uri=${redirectUri}`,
+							`redirect_uri=${encodeURIComponent(redirectUri)}`,
 						];
-						return ajax.post(
-							`${twitchTokenUrl}?${queryParts.join('&')}`,
-							null,
-							{ 'Content-Type': 'application/json' },
-						);
+						const url = `${twitchTokenUrl}?${queryParts.join('&')}`;
+						log(`Attempt to post to ${url}`);
+						return ajax({
+							createXHR: () => { return new XMLHttpRequest(); },
+							url,
+							method: 'POST',
+							responseType: 'json',
+						});
 					}),
 					catchError((error) => {
 						const statusCode: number = error?.response?.statusCode ?? 0;
-						const message: string = statusCode === 0
-							? 'Connection error'
-							: (error?.response?.message ?? 'Unrecognized error');
+						const message: string = error?.response?.message ?? 'Connection error';
 						log({
 							level: LogLevel.Error,
 							text: `Failed to convert authorization to tokens: ${message} (statusCode: ${statusCode})`,

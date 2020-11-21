@@ -1,6 +1,7 @@
 import {
 	isServerModule,
 	isServerModuleCapabilityStorage,
+	LogLevel,
 	LogMessage,
 	ModuleApi,
 	ModuleApiDispatch,
@@ -177,10 +178,13 @@ export const initializeServerModules = async (config: ServerConfig) => {
 				loadedModule.reactionSub = reaction$.subscribe({
 					next: initParams.api.dispatch,
 					error: (error) => {
-						console.error(`Reaction stream for moduleId '${moduleId}' ended with error`, error);
+						log({
+							level: LogLevel.Error,
+							text: `Reaction stream for moduleId '${moduleId}' ended with error ${error}`,
+						});
 					},
 					complete: () => {
-						console.log(`Reaction stream for moduleId '${moduleId}' completed`);
+						log(`Reaction stream for moduleId '${moduleId}' completed`);
 					},
 				});
 			}

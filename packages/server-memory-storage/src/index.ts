@@ -1,4 +1,5 @@
 import {
+	LogLevel,
 	ModuleConfig,
 	StorageModule,
 	StorageModuleInitializer,
@@ -6,25 +7,22 @@ import {
 
 const moduleName = 'MemoryStorage';
 
-export interface MemoryStorageConfig extends ModuleConfig {
-	verbose?: boolean;
-}
+export interface MemoryStorageConfig extends ModuleConfig {}
 
 type MemoryStore = Record<string, Record<string, string>>;
 
 const initialize: StorageModuleInitializer<MemoryStorageConfig> = async ({
-	moduleId,
-	config: { verbose = false },
+	api: { log },
 }) => {
 	const store: MemoryStore = {};
-	const log = verbose
-		? (msg: string) => console.log(`[${moduleId}] ${msg}`)
-		: undefined;
 	return {
 		storage: {
 			fetch: async (name, key) => {
 				const value = store[name]?.[key];
-				log?.(`Fetched ('${name}', '${key}'): ${value === undefined ? 'not found' : `'${value}'`}`);
+				log({
+					level: LogLevel.Debug,
+					text: `Fetched ('${name}', '${key}'): ${value === undefined ? 'not found' : `'${value}'`}`,
+				});
 				return value;
 			},
 			store: async (name, key, value) => {
@@ -35,7 +33,10 @@ const initialize: StorageModuleInitializer<MemoryStorageConfig> = async ({
 					found = (typeof store[name][key] === 'string');
 				}
 				store[name][key] = value;
-				log?.(`Stored ${found ? 'overwritten' : 'new'} ('${name}', '${key}'): '${value}'`);
+				log({
+					level: LogLevel.Debug,
+					text: `Stored ${found ? 'overwritten' : 'new'} ('${name}', '${key}'): '${value}'`,
+				});
 			},
 			remove: async (name, key) => {
 				let found = false;
@@ -43,7 +44,10 @@ const initialize: StorageModuleInitializer<MemoryStorageConfig> = async ({
 					found = (typeof store[name][key] === 'string');
 					delete store[name][key];
 				}
-				log?.(`Removed ${found ? '' : 'non'}existent ('${name}', '${key}')`);
+				log({
+					level: LogLevel.Debug,
+					text: `Removed ${found ? '' : 'non'}existent ('${name}', '${key}')`,
+				});
 			},
 		},
 	};

@@ -36,8 +36,11 @@ export interface Action<TName extends string = string, TType extends string = st
 	fromScreenId?: string;
 }
 
-/** Predicate for validating action shape */
-export const isAction = (action: any): action is Action => {
+/** An action that has been serialized/deserialized (to handle void payloads) */
+export type SerializedAction = Omit<Action, 'payload'> & Pick<Partial<Action>, 'payload'>;
+
+/** Predicate for validating serialized action shape */
+export const isSerializedAction = (action: any): action is SerializedAction => {
 	if (!action || typeof action !== 'object') {
 		return false;
 	}
@@ -56,16 +59,13 @@ export const isAction = (action: any): action is Action => {
 	if (typeof moduleName !== 'string' || typeof type !== 'string') {
 		return false;
 	}
-	if (!Object.prototype.hasOwnProperty.call(action, 'payload')) {
-		return false;
-	}
 	if (typeof fromModuleName !== 'string' || typeof fromModuleId !== 'string') {
 		return false;
 	}
-	if (fromClientId !== undefined && typeof fromClientId !== 'boolean') {
+	if (fromClientId !== undefined && typeof fromClientId !== 'string') {
 		return false;
 	}
-	if (fromScreenId !== undefined && typeof fromScreenId !== 'boolean') {
+	if (fromScreenId !== undefined && typeof fromScreenId !== 'string') {
 		return false;
 	}
 	if (targetServer !== undefined && typeof targetServer !== 'boolean') {
@@ -78,6 +78,17 @@ export const isAction = (action: any): action is Action => {
 		return false;
 	}
 	if (targetScreenId !== undefined && typeof targetScreenId !== 'string') {
+		return false;
+	}
+	return true;
+};
+
+/** Predicate for validating action shape */
+export const isAction = (action: any): action is Action => {
+	if (!isSerializedAction(action)) {
+		return false;
+	}
+	if (!Object.prototype.hasOwnProperty.call(action, 'payload')) {
 		return false;
 	}
 	return true;
@@ -215,3 +226,15 @@ export const isInitCompleteRootAction = isActionOf(rootActions.initComplete);
 
 /** Convenience function for filtering shutdown root action */
 export const isShutdownRootAction = isActionOf(rootActions.shutdown);
+
+/** Convenience function for filtering clientConnect root action */
+export const isClientConnectRootAction = isActionOf(rootActions.clientConnect);
+
+/** Convenience function for filtering clientDisconnect root action */
+export const isClientDisonnectRootAction = isActionOf(rootActions.clientDisconnect);
+
+/** Convenience function for filtering serverConnect root action */
+export const isServerConnectRootAction = isActionOf(rootActions.serverConnect);
+
+/** Convenience function for filtering serverDisconnect root action */
+export const isServerDisconnectRootAction = isActionOf(rootActions.serverDisconnect);

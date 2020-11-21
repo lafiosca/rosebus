@@ -26,7 +26,10 @@ const handleConnect = () => {
 
 const handleServerAction = (payload: unknown) => {
 	if (isBridgeEventServerActionPayload(payload)) {
-		const action: Action = payload;
+		const action: Action = {
+			payload: undefined,
+			...payload,
+		};
 		const { moduleName, type } = action;
 		log({
 			text: `Received ${moduleName}.${type} action from server`,

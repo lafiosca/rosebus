@@ -176,6 +176,8 @@ export interface ClientModuleComponentProps<
 	clientId: string;
 	/** Unique identifier for the screen this instance of the module is mounted on */
 	screenId: string;
+	/** True if the client-server bridge is connected */
+	bridgeConnected: boolean;
 }
 
 /** Props passed to a client module configurator */

@@ -46,6 +46,7 @@ const ScreenView: FunctionComponent<ClientModuleComponentProps<TwitchAuthConfig,
 		dispatch,
 		log,
 	},
+	bridgeConnected,
 	config: {
 		twitchModuleId = 'Twitch',
 	},
@@ -55,7 +56,7 @@ const ScreenView: FunctionComponent<ClientModuleComponentProps<TwitchAuthConfig,
 
 	useEffect(
 		() => {
-			if (!appClientId) {
+			if (bridgeConnected && !appClientId) {
 				log('Request twitch module config');
 				dispatch(actions.requestConfig(
 					undefined,
@@ -65,6 +66,7 @@ const ScreenView: FunctionComponent<ClientModuleComponentProps<TwitchAuthConfig,
 		},
 		[
 			appClientId,
+			bridgeConnected,
 			log,
 			dispatch,
 			twitchModuleId,
@@ -108,7 +110,7 @@ const ScreenView: FunctionComponent<ClientModuleComponentProps<TwitchAuthConfig,
 	return (
 		<div className={moduleName}>
 			<h1>Twitch Auth</h1>
-			{appClientId ? (
+			{(bridgeConnected && appClientId) ? (
 				<OAuth2Login
 					authorizationUrl="https://id.twitch.tv/oauth2/authorize"
 					responseType="code"
@@ -116,10 +118,18 @@ const ScreenView: FunctionComponent<ClientModuleComponentProps<TwitchAuthConfig,
 					redirectUri={redirectUri}
 					scope={scopes.join('+')}
 					onSuccess={(response: any) => {
-						console.log(`success: ${JSON.stringify(response, null, 2)}`);
+						const authorizationCode: string = response?.code ?? '';
+						if (authorizationCode) {
+							dispatch(actions.authorize({
+								authorizationCode,
+								redirectUri,
+							}));
+						} else {
+							log(`auth response did not include code: ${JSON.stringify(response, null, 2)}`);
+						}
 					}}
 					onFailure={(response: any) => {
-						console.log(`failure: ${JSON.stringify(response, null, 2)}`);
+						log(`auth failure: ${JSON.stringify(response, null, 2)}`);
 					}}
 				/>
 			) : (

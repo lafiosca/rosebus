@@ -1,4 +1,4 @@
-import { Action, isAction } from './actions';
+import { SerializedAction, isSerializedAction } from './actions';
 
 /** Default port used for client-server bridge */
 export const defaultBridgePort = 23000;
@@ -77,16 +77,16 @@ export const isBridgeEventClientRegistrationPayload = (
 export const bridgeEventServerAction = 'serverAction';
 
 /** Bridge event payload for a bus action sent from server to client */
-export interface BridgeEventServerActionPayload extends Action {}
+export interface BridgeEventServerActionPayload extends SerializedAction {}
 
 /** Predicate for validating bridge event server action payload shape */
-export const isBridgeEventServerActionPayload = isAction;
+export const isBridgeEventServerActionPayload = isSerializedAction;
 
 /** Bridge event name for a bus action sent from client to server */
 export const bridgeEventClientAction = 'clientAction';
 
 /** Bridge event payload for a bus action sent from client to server */
-export interface BridgeEventClientActionPayload extends Action {}
+export interface BridgeEventClientActionPayload extends SerializedAction {}
 
 /** Predicate for validating bridge event client action payload shape */
-export const isBridgeEventClientActionPayload = isAction;
+export const isBridgeEventClientActionPayload = isSerializedAction;

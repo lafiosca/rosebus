@@ -37,6 +37,7 @@ const buildClientActionHandler = (clientId: string) => (
 	(payload: unknown) => {
 		if (isBridgeEventClientActionPayload(payload)) {
 			const action: Action = {
+				payload: undefined,
 				...payload,
 				fromClientId: clientId,
 			};

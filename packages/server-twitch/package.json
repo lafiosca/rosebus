@@ -29,6 +29,7 @@
 		"twitch-auth": "^4.2.7",
 		"twitch-chat-client": "^4.2.7",
 		"twitch-pubsub-client": "^4.2.7",
-		"twitch-webhooks": "^4.2.7"
+		"twitch-webhooks": "^4.2.7",
+		"xmlhttprequest": "^1.8.0"
 	}
 }

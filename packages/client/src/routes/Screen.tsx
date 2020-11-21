@@ -1,4 +1,6 @@
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, useEffect, useState } from 'react';
+import { filter, tap } from 'rxjs/operators';
+import { isServerConnectRootAction, isServerDisconnectRootAction } from '@rosebus/common';
 import TwitchAuth from '@rosebus/client-twitch-auth';
 
 import { RouteComponentProps } from '../services/navigation';
@@ -16,9 +18,33 @@ const Screen: FunctionComponent<Props> = () => {
 			moduleName: moduleId,
 		},
 	};
+	const [bridgeConnected, setBridgeConnected] = useState(false);
 	const action$ = useModuleAction$(fakeLoadedModule, screenId);
 	const dispatch = useModuleApiDispatch(fakeLoadedModule, screenId);
 	const log = useModuleApiLog(fakeLoadedModule, screenId);
+	useEffect(
+		() => {
+			log('Establish bridgeConnected subscriptions');
+			const connectSub = action$.pipe(
+				filter(isServerConnectRootAction),
+				tap(() => {
+					setBridgeConnected(true);
+				}),
+			).subscribe();
+			const disconnectSub = action$.pipe(
+				filter(isServerDisconnectRootAction),
+				tap(() => {
+					setBridgeConnected(false);
+				}),
+			).subscribe();
+			return () => {
+				log('Teardown bridgeConnected subscriptions');
+				connectSub.unsubscribe();
+				disconnectSub.unsubscribe();
+			};
+		},
+		[action$, log],
+	);
 	return (
 		<section className="Screen">
 			<TwitchAuth.ScreenView
@@ -36,6 +62,7 @@ const Screen: FunctionComponent<Props> = () => {
 					},
 				}}
 				action$={action$}
+				bridgeConnected={bridgeConnected}
 			/>
 		</section>
 	);
